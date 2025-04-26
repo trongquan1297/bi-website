@@ -1,13 +1,34 @@
 "use client"
 
-import type React from "react"
-
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
-import { BarChart, PieChart, LineChart, Plus, RefreshCw } from "lucide-react"
+import { getAuthHeader } from "@/lib/auth"
+import { Button } from "@/components/ui/button"
+import {
+  LayoutDashboard,
+  Plus,
+  Search,
+  RefreshCw,
+  Eye,
+  Edit,
+  Trash2,
+  MoreHorizontal,
+  Calendar,
+  Clock,
+} from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+
+interface Dashboard {
+  id: number
+  name: string
+  description?: string
+  created_at: string
+  updated_at: string
+  owner?: string
+}
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -15,217 +36,298 @@ export default function DashboardPage() {
   const [username, setUsername] = useState<string>("Người dùng")
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
+  const [dashboards, setDashboards] = useState<Dashboard[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   useEffect(() => {
-    // Kiểm tra xác thực khi component mount
+    // Check authentication when component mounts
     if (!isAuthenticated()) {
       router.push("/login")
       return
     }
 
-    // Lấy thông tin người dùng từ token
+    // Get user info from token
     try {
       const token = localStorage.getItem("auth-token")
       if (token) {
-        // Giải mã token để lấy thông tin người dùng
+        // Decode token to get user info
         const base64Url = token.split(".")[1]
         const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
         const payload = JSON.parse(window.atob(base64))
 
-        // Lấy username từ payload
+        // Get username from payload
         setUsername(payload.sub || payload.username || "Người dùng")
 
-        // Lấy avatar URL từ payload nếu có
+        // Get avatar URL from payload if available
         if (payload.avatar_url) {
           setAvatarUrl(payload.avatar_url)
         }
       }
     } catch (error) {
-      console.error("Lỗi khi giải mã token:", error)
+      console.error("Error decoding token:", error)
     }
 
-    setIsLoading(false)
-  }, [router, isAuthenticated])
+    fetchDashboards()
+  }, [])
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-violet-500 rounded-full border-t-transparent"></div>
-      </div>
-    )
+  const fetchDashboards = async () => {
+    setIsLoading(true)
+    setIsRefreshing(true)
+    setError(null)
+
+    try {
+      const authHeader = getAuthHeader()
+      const response = await fetch("http://localhost:8000/api/dashboards/get", {
+        headers: {
+          Authorization: authHeader,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error fetching dashboards: ${response.status}`)
+      }
+
+      const data = await response.json()
+      if (data && data.dashboards) {
+        setDashboards(data.dashboards)
+      } else {
+        setDashboards([])
+      }
+    } catch (error) {
+      console.error("Error fetching dashboards:", error)
+      setError("Could not fetch dashboards. Please try again later.")
+    } finally {
+      setIsLoading(false)
+      setIsRefreshing(false)
+    }
+  }
+
+  const handleDeleteDashboard = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this dashboard?")) {
+      return
+    }
+
+    try {
+      const authHeader = getAuthHeader()
+      const response = await fetch(`http://localhost:8000/api/dashboards/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: authHeader,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error deleting dashboard: ${response.status}`)
+      }
+
+      // Refresh dashboards list
+      fetchDashboards()
+    } catch (error) {
+      console.error("Error deleting dashboard:", error)
+      setError("Could not delete dashboard. Please try again later.")
+    }
+  }
+
+  // Filter dashboards by search term
+  const filteredDashboards = dashboards.filter((dashboard) =>
+    dashboard.name.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
+  // Format date to a more readable format
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    })
   }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <AppSidebar />
 
-      <div className="transition-all duration-300 md:pl-64">
+      <div className="transition-all duration-300">
         <AppHeader username={username} avatarUrl={avatarUrl} />
 
         <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center mb-4 sm:mb-0">
-              <BarChart className="h-6 w-6 text-violet-600 mr-2" />
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h2>
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center">
+              <LayoutDashboard className="h-6 w-6 text-violet-600 mr-2" />
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboards</h1>
             </div>
-            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-              <button className="inline-flex items-center px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
-              </button>
-              <button className="inline-flex items-center px-4 py-2 bg-violet-600 text-white rounded-md hover:bg-violet-700 transition-colors">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search dashboards..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              </div>
+              <Button
+                variant="outline"
+                onClick={fetchDashboards}
+                disabled={isRefreshing}
+                className="inline-flex items-center justify-center"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+                {isRefreshing ? "Refreshing..." : "Refresh"}
+              </Button>
+              <Button onClick={() => router.push("/dashboard/builder")}>
                 <Plus className="h-4 w-4 mr-2" />
-                New Dashboard
-              </button>
+                Create Dashboard
+              </Button>
             </div>
           </div>
 
-          {/* Dashboard Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-            {/* Metric Card 1 */}
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Total Users</h3>
-                <span className="p-2 bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300 rounded-full">
-                  <User className="h-5 w-5" />
-                </span>
-              </div>
-              <div className="flex items-baseline">
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">2,543</p>
-                <p className="ml-2 text-sm text-green-600 dark:text-green-400">+12.5%</p>
-              </div>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Compared to last month</p>
+          {error && (
+            <div className="bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 px-4 py-3 rounded-md mb-6">
+              <p>{error}</p>
             </div>
+          )}
 
-            {/* Metric Card 2 */}
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Revenue</h3>
-                <span className="p-2 bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300 rounded-full">
-                  <DollarSign className="h-5 w-5" />
-                </span>
-              </div>
-              <div className="flex items-baseline">
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">$42,580</p>
-                <p className="ml-2 text-sm text-green-600 dark:text-green-400">+8.2%</p>
-              </div>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Compared to last month</p>
-            </div>
-
-            {/* Metric Card 3 */}
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Active Projects</h3>
-                <span className="p-2 bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300 rounded-full">
-                  <Briefcase className="h-5 w-5" />
-                </span>
-              </div>
-              <div className="flex items-baseline">
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">78</p>
-                <p className="ml-2 text-sm text-red-600 dark:text-red-400">-2.5%</p>
-              </div>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Compared to last month</p>
-            </div>
-          </div>
-
-          {/* Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Chart 1 */}
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Revenue Overview</h3>
-                <div className="flex space-x-2">
-                  <button className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
-                    <LineChart className="h-5 w-5" />
-                  </button>
-                  <button className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
-                    <BarChart className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-              <div className="h-64 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded">
-                <p className="text-gray-500 dark:text-gray-400">Chart Placeholder</p>
+          {isLoading && !isRefreshing ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="flex flex-col items-center">
+                <div className="animate-spin h-8 w-8 border-4 border-violet-500 rounded-full border-t-transparent"></div>
+                <p className="mt-4 text-gray-500 dark:text-gray-400">Loading dashboards...</p>
               </div>
             </div>
-
-            {/* Chart 2 */}
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">User Demographics</h3>
-                <div className="flex space-x-2">
-                  <button className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
-                    <PieChart className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-              <div className="h-64 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded">
-                <p className="text-gray-500 dark:text-gray-400">Chart Placeholder</p>
+          ) : filteredDashboards.length === 0 ? (
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center">
+              <LayoutDashboard className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No dashboards found</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-4">
+                {searchTerm
+                  ? "No dashboards match your search criteria."
+                  : "Create your first dashboard to visualize your data."}
+              </p>
+              <Button onClick={() => router.push("/dashboard/builder")}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Dashboard
+              </Button>
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Owner
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Created
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Updated
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {filteredDashboards.map((dashboard) => (
+                      <tr key={dashboard.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <LayoutDashboard className="h-5 w-5 text-violet-500 mr-3" />
+                            <div>
+                              <div className="text-sm font-medium text-gray-900 dark:text-white">{dashboard.name}</div>
+                              {dashboard.description && (
+                                <div className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">
+                                  {dashboard.description}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 dark:text-white">{dashboard.owner || username}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                            <Calendar className="h-4 w-4 mr-1" />
+                            {formatDate(dashboard.created_at)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                            <Clock className="h-4 w-4 mr-1" />
+                            {formatDate(dashboard.updated_at)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center justify-end space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => router.push(`/dashboard/${dashboard.id}`)}
+                              className="text-violet-600 hover:text-violet-800 dark:text-violet-400 dark:hover:text-violet-300"
+                            >
+                              <Eye className="h-4 w-4" />
+                              <span className="sr-only">View</span>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => router.push(`/dashboard/builder?id=${dashboard.id}`)}
+                              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                            >
+                              <Edit className="h-4 w-4" />
+                              <span className="sr-only">Edit</span>
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">More options</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => router.push(`/dashboard/${dashboard.id}`)}
+                                  className="flex items-center"
+                                >
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => router.push(`/dashboard/builder?id=${dashboard.id}`)}
+                                  className="flex items-center"
+                                >
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteDashboard(dashboard.id)}
+                                  className="flex items-center text-red-600 hover:text-red-700 focus:text-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
-          </div>
+          )}
         </main>
       </div>
     </div>
-  )
-}
-
-// Thêm các biểu tượng thiếu
-function User(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  )
-}
-
-function DollarSign(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <line x1="12" y1="1" x2="12" y2="23" />
-      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-    </svg>
-  )
-}
-
-function Briefcase(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-    </svg>
   )
 }

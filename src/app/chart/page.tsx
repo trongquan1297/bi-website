@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
 import { LineChart, BarChart, PieChart, Plus, Download, RefreshCw, Search, Trash2, Edit } from "lucide-react"
-import { AddChartModal } from "@/components/chart/add-chart-modal"
+import { ChartBuilderModal } from "@/components/chart-builder"
 import { ConfirmDeleteChartModal } from "@/components/chart/confirm-delete-chart-modal"
 import { getAuthHeader } from "@/lib/auth"
 import {
@@ -23,7 +23,7 @@ import {
 } from "chart.js"
 import { Line, Bar, Pie } from "react-chartjs-2"
 
-// Đăng ký các components cần thiết cho Chart.js
+// Register required Chart.js components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend)
 
 interface Chart {
@@ -41,6 +41,7 @@ interface Chart {
   }
   created_at: string
   updated_at: string
+  owner?: string
 }
 
 export default function ChartPage() {
@@ -56,17 +57,18 @@ export default function ChartPage() {
   const [fetchAttempted, setFetchAttempted] = useState(false)
   const [activeTab, setActiveTab] = useState("all")
 
-  // State cho modal thêm chart
+  // State for modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-
-  // Thêm state cho modal xác nhận xóa chart
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [chartToEdit, setChartToEdit] = useState<number | null>(null)
   const [chartToDelete, setChartToDelete] = useState<Chart | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [editChartId, setEditChartId] = useState<number | null>(null)
 
-  // Hàm lấy dữ liệu charts từ API
+  // Fetch charts from API
   const fetchCharts = useCallback(async () => {
-    if (isRefreshing) return // Ngăn chặn nhiều lần gọi API cùng lúc
+    if (isRefreshing) return // Prevent multiple API calls
 
     setIsLoading(true)
     setIsRefreshing(true)
@@ -74,20 +76,20 @@ export default function ChartPage() {
     setFetchAttempted(true)
 
     try {
-      // Lấy auth header từ client
+      // Get auth header from client
       const authHeader = getAuthHeader()
 
-      // Sử dụng API route proxy để tránh lỗi CORS
+      // Use API route proxy to avoid CORS issues
       const response = await fetch("/api/charts", {
         headers: {
           Authorization: authHeader,
         },
-        // Thêm timeout để tránh chờ quá lâu
-        signal: AbortSignal.timeout(10000), // 10 giây timeout
+        // Add timeout to avoid waiting too long
+        signal: AbortSignal.timeout(10000), // 10 second timeout
       })
 
       if (!response.ok) {
-        throw new Error(`Lỗi khi lấy dữ liệu: ${response.status}`)
+        throw new Error(`Error fetching data: ${response.status}`)
       }
 
       const data = await response.json()
@@ -98,13 +100,13 @@ export default function ChartPage() {
         setCharts([])
       }
     } catch (error) {
-      console.error("Lỗi khi lấy dữ liệu charts:", error)
+      console.error("Error fetching charts:", error)
       if (error instanceof DOMException && error.name === "AbortError") {
-        setError("Yêu cầu bị hủy do quá thời gian. Vui lòng kiểm tra kết nối mạng và thử lại.")
+        setError("Request timed out. Please check your network connection and try again.")
       } else {
-        setError("Không thể lấy dữ liệu charts. Vui lòng thử lại sau.")
+        setError("Could not fetch charts. Please try again later.")
       }
-      // Đặt charts thành mảng rỗng để tránh hiển thị dữ liệu cũ
+      // Set charts to empty array to avoid displaying old data
       setCharts([])
     } finally {
       setIsLoading(false)
@@ -112,7 +114,7 @@ export default function ChartPage() {
     }
   }, [isRefreshing])
 
-  // Thêm hàm xóa chart
+  // Delete chart
   const handleDeleteChart = async () => {
     if (!chartToDelete) return
 
@@ -126,89 +128,100 @@ export default function ChartPage() {
         headers: {
           Authorization: authHeader,
         },
-        signal: AbortSignal.timeout(10000), // 10 giây timeout
+        signal: AbortSignal.timeout(10000), // 10 second timeout
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.message || "Không thể xóa biểu đồ")
+        throw new Error(errorData.message || "Could not delete chart")
       }
 
-      // Xóa thành công, cập nhật danh sách
+      // Delete successful, update list
       setCharts(charts.filter((chart) => chart.id !== chartToDelete.id))
       setIsDeleteModalOpen(false)
       setChartToDelete(null)
     } catch (error) {
       console.error("Error deleting chart:", error)
-      setError(error instanceof Error ? error.message : "Đã xảy ra lỗi khi xóa biểu đồ")
+      setError(error instanceof Error ? error.message : "An error occurred while deleting the chart")
     } finally {
       setIsDeleting(false)
     }
   }
 
-  // Thêm hàm mở modal xác nhận xóa
+  // Open delete confirmation modal
   const handleOpenDeleteModal = (chart: Chart) => {
     setChartToDelete(chart)
     setIsDeleteModalOpen(true)
   }
 
-  // Lấy thông tin người dùng và charts khi component mount
+  // Open edit modal
+  const handleOpenEditModal = (chartId: number) => {
+    setChartToEdit(chartId)
+    setIsEditModalOpen(true)
+  }
+
+  const handleEditChart = (chartId: number) => {
+    setEditChartId(chartId)
+    setIsAddModalOpen(true)
+  }
+
+  // Get user info and charts when component mounts
   useEffect(() => {
-    // Kiểm tra xác thực khi component mount
+    // Check authentication when component mounts
     if (!isAuthenticated()) {
       router.push("/login")
       return
     }
 
-    // Lấy thông tin người dùng từ token
+    // Get user info from token
     try {
       const token = localStorage.getItem("auth-token")
       if (token) {
-        // Giải mã token để lấy thông tin người dùng
+        // Decode token to get user info
         const base64Url = token.split(".")[1]
         const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
         const payload = JSON.parse(window.atob(base64))
 
-        // Lấy username từ payload
+        // Get username from payload
         setUsername(payload.sub || payload.username || "Người dùng")
 
-        // Lấy avatar URL từ payload nếu có
+        // Get avatar URL from payload if available
         if (payload.avatar_url) {
           setAvatarUrl(payload.avatar_url)
         }
       }
     } catch (error) {
-      console.error("Lỗi khi giải mã token:", error)
+      console.error("Error decoding token:", error)
     }
 
-    // Chỉ gọi fetchCharts một lần khi component mount
+    // Only call fetchCharts once when component mounts
     if (!fetchAttempted) {
       fetchCharts()
     }
   }, [router, isAuthenticated, fetchCharts, fetchAttempted])
 
-  // Hàm làm mới dữ liệu
+  // Refresh data
   const handleRefresh = () => {
-    if (isRefreshing) return // Ngăn chặn nhiều lần gọi API cùng lúc
+    if (isRefreshing) return // Prevent multiple API calls
     setIsRefreshing(true)
     fetchCharts()
   }
 
-  // Hàm mở modal thêm chart
+  // Open add chart modal
   const handleOpenAddModal = () => {
     setIsAddModalOpen(true)
   }
 
-  // Lọc charts theo từ khóa tìm kiếm và loại chart
+  // Filter charts by search term and chart type
   const filteredCharts = charts.filter((chart) => {
     const matchesSearch = chart.name.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesType = activeTab === "all" || chart.chart_type === activeTab
     return matchesSearch && matchesType
   })
 
-  // Render chart dựa vào loại
+  // Render chart based on type
   const renderChart = (chart: Chart) => {
-    // Tạo dữ liệu mẫu cho chart
+    // Create sample data for chart
     const labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
     const values = Array.from({ length: 6 }, () => Math.floor(Math.random() * 100))
 
@@ -265,7 +278,7 @@ export default function ChartPage() {
     }
   }
 
-  // Hiển thị trạng thái loading
+  // Show loading state
   if (isLoading && !isRefreshing && !fetchAttempted) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -396,48 +409,196 @@ export default function ChartPage() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCharts.map((chart) => (
-                <div key={chart.id} className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-                  <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white truncate">{chart.name}</h3>
-                    <div className="flex space-x-2">
-                      <button className="p-1 rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button className="p-1 rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                        <Download className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleOpenDeleteModal(chart)}
-                        className="p-1 rounded-md text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
+            <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+              {/* Desktop view - table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                        ID
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                      >
+                        Tên biểu đồ
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                      >
+                        Dataset ID
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                      >
+                        Loại biểu đồ
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                      >
+                        Người tạo
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                      >
+                        Cập nhật lần cuối
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                      >
+                        Thao tác
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {filteredCharts.map((chart) => (
+                      <tr key={chart.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                          {chart.id}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                          <span
+                            className="cursor-pointer hover:text-violet-600 dark:hover:text-violet-400"
+                            onClick={() => handleEditChart(chart.id)}
+                          >
+                            {chart.name || "Untitled Chart"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                          {chart.dataset_id}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                            {chart.chart_type}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                          {chart.owner || "You"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                          {new Date(chart.updated_at).toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end space-x-2">
+                            <button
+                              className="text-violet-600 hover:text-violet-900 dark:text-violet-400 dark:hover:text-violet-300"
+                              onClick={() => handleEditChart(chart.id)}
+                              title="Edit chart"
+                            >
+                              <Edit className="h-4 w-4" />
+                              <span className="sr-only">Edit</span>
+                            </button>
+                            <button
+                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                              title="Download chart"
+                            >
+                              <Download className="h-4 w-4" />
+                              <span className="sr-only">Download</span>
+                            </button>
+                            <button
+                              onClick={() => handleOpenDeleteModal(chart)}
+                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                              title="Delete chart"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span className="sr-only">Delete</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile view - cards */}
+              <div className="md:hidden">
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {filteredCharts.map((chart) => (
+                    <div key={chart.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h3
+                            className="text-sm font-medium text-gray-900 dark:text-white cursor-pointer hover:text-violet-600 dark:hover:text-violet-400"
+                            onClick={() => handleEditChart(chart.id)}
+                          >
+                            {chart.name || "Untitled Chart"}
+                          </h3>
+                          <div className="flex items-center mt-1">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 mr-2">
+                              {chart.chart_type}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              Dataset ID: {chart.dataset_id}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">ID: {chart.id}</span>
+                      </div>
+                      <div className="flex justify-between items-center mt-2">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div>Owner: {chart.owner || "You"}</div>
+                          <div>Updated: {new Date(chart.updated_at).toLocaleString()}</div>
+                        </div>
+                        <div className="flex space-x-3">
+                          <button
+                            className="p-1.5 rounded-md text-violet-600 hover:bg-violet-50 dark:text-violet-400 dark:hover:bg-violet-900/20"
+                            onClick={() => handleEditChart(chart.id)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button className="p-1.5 rounded-md text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
+                            <Download className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleOpenDeleteModal(chart)}
+                            className="p-1.5 rounded-md text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="p-4 h-64">{renderChart(chart)}</div>
-                  <div className="px-4 py-2 bg-gray-50 dark:bg-gray-700 text-xs text-gray-500 dark:text-gray-400">
-                    <div className="flex justify-between">
-                      <span>Dataset ID: {chart.dataset_id}</span>
-                      <span>Loại: {chart.chart_type}</span>
-                    </div>
-                    <div className="flex justify-between mt-1">
-                      <span>Label: {chart.label_field}</span>
-                      <span>Value: {chart.value_field}</span>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
           )}
         </main>
       </div>
 
-      {/* Modal tạo biểu đồ */}
-      <AddChartModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSuccess={fetchCharts} />
+      {/* Create chart modal */}
+      <ChartBuilderModal
+        isOpen={isAddModalOpen}
+        onClose={() => {
+          setIsAddModalOpen(false)
+          setEditChartId(null)
+        }}
+        onSuccess={fetchCharts}
+        editChartId={editChartId}
+      />
 
-      {/* Modal xác nhận xóa */}
+      {/* Edit chart modal */}
+      <ChartBuilderModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false)
+          setChartToEdit(null)
+        }}
+        onSuccess={fetchCharts}
+        editChartId={chartToEdit}
+      />
+
+      {/* Delete confirmation modal */}
       <ConfirmDeleteChartModal
         isOpen={isDeleteModalOpen}
         chartId={chartToDelete?.id || null}

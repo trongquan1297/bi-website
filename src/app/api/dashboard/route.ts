@@ -2,16 +2,15 @@ import { type NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
   try {
-    // Lấy token từ request headers
+    // Get token from request headers
     const authHeader = request.headers.get("authorization")
 
-    // Tạo controller để có thể hủy request nếu cần
+    // Create controller for timeout handling
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 8000) // 8 giây timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
 
     try {
-      // Cập nhật URL endpoint lấy danh sách chart
-      const response = await fetch("http://localhost:8000/api/charts/get", {
+      const response = await fetch("http://localhost:8000/api/dashboards", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -21,6 +20,10 @@ export async function GET(request: NextRequest) {
       })
 
       clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        throw new Error(`Error fetching dashboards: ${response.status}`)
+      }
 
       const data = await response.json()
       return NextResponse.json(data)
@@ -33,10 +36,10 @@ export async function GET(request: NextRequest) {
       throw error
     }
   } catch (error) {
-    console.error("Error fetching charts:", error)
+    console.error("Error fetching dashboards:", error)
     return NextResponse.json(
       {
-        error: "Failed to fetch charts",
+        error: "Failed to fetch dashboards",
         message: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
@@ -45,18 +48,16 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  console.log("Chart creation API called")
   try {
     const body = await request.json()
-    console.log("Request body:", JSON.stringify(body, null, 2))
     const authHeader = request.headers.get("authorization")
 
-    // Tạo controller để có thể hủy request nếu cần
+    // Create controller for timeout handling
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 8000) // 8 giây timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
 
     try {
-      const response = await fetch("http://localhost:8000/api/charts", {
+      const response = await fetch("http://localhost:8000/api/dashboards", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -68,8 +69,16 @@ export async function POST(request: NextRequest) {
 
       clearTimeout(timeoutId)
 
+      if (!response.ok) {
+        const errorData = await response.json()
+        return NextResponse.json(
+          { error: errorData.message || `Failed to create dashboard: ${response.status}` },
+          { status: response.status },
+        )
+      }
+
       const data = await response.json()
-      return NextResponse.json(data, { status: response.status })
+      return NextResponse.json(data)
     } catch (error) {
       clearTimeout(timeoutId)
 
@@ -79,10 +88,10 @@ export async function POST(request: NextRequest) {
       throw error
     }
   } catch (error) {
-    console.error("Error creating chart:", error)
+    console.error("Error creating dashboard:", error)
     return NextResponse.json(
       {
-        error: "Failed to create chart",
+        error: "Failed to create dashboard",
         message: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
