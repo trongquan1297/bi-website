@@ -113,6 +113,7 @@ export default function DashboardBuilderPage() {
         },
         body: JSON.stringify(dashboardData),
       })
+      console.log("Saved dashboard data:", dashboardData)
 
       if (!response.ok) {
         throw new Error(`Error saving dashboard: ${response.status}`)

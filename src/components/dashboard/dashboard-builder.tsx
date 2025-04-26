@@ -8,6 +8,7 @@ import { GridItemContent } from "./grid-item-content"
 import { ChartSelector } from "./chart-selector"
 import { TextEditor } from "./text-editor"
 import { TitleEditor } from "./title-editor"
+import { v4 as uuidv4 } from "uuid";
 
 // Import react-grid-layout styles
 import "react-grid-layout/css/styles.css"
@@ -63,8 +64,7 @@ export function DashboardBuilder({ initialDashboard, onSave, onCancel }: Dashboa
 
   // Generate a unique ID for new items
   const generateItemId = (type: string) => {
-    const id = `${type}_${nextItemId}`
-    setNextItemId(nextItemId + 1)
+    const id = `${type}-${uuidv4()}`
     return id
   }
 
@@ -129,8 +129,9 @@ export function DashboardBuilder({ initialDashboard, onSave, onCancel }: Dashboa
 
   // Remove an item from the layout
   const handleRemoveItem = (itemId: string) => {
-    setLayout(layout.filter((item) => item.i !== itemId))
-  }
+    console.log("Removing item:", itemId);
+    setLayout((prevLayout) => prevLayout.filter((item) => item.i !== itemId));
+  };
 
   // Handle layout change
   const handleLayoutChange = (newLayout: any[]) => {
@@ -245,7 +246,9 @@ export function DashboardBuilder({ initialDashboard, onSave, onCancel }: Dashboa
           {layout.length === 0 ? (
             <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
               <LayoutGrid className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Your dashboard is empty</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                Your dashboard is empty
+              </h3>
               <p className="text-gray-500 dark:text-gray-400 mb-4">
                 Add charts, text, or titles from the right panel to build your dashboard.
               </p>
@@ -267,18 +270,24 @@ export function DashboardBuilder({ initialDashboard, onSave, onCancel }: Dashboa
                   key={item.i}
                   className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden"
                 >
-                  <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-700">
-                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate px-2">
-                      {item.type === "chart" ? "chart": item.type === "text" ? "Text" : "Title"}
+                  {/* Header */}
+                  <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-2">
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">
+                      {item.type === "chart" ? "Chart" : item.type === "text" ? "Text" : "Title"}
                     </div>
                     <button
+                      onMouseDown={(e) => e.stopPropagation()} // NGĂN drag ngay từ đầu
                       onClick={() => handleRemoveItem(item.i)}
-                      className="p-1 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400"
+                      className="p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-500/20"
+                      style={{ pointerEvents: 'auto', zIndex: 10 }}
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-4 w-4 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400" />
                     </button>
+
                   </div>
-                  <div className="p-2 h-[calc(100%-32px)] overflow-auto">
+
+                  {/* Content */}
+                  <div className="p-2 h-[calc(100%-40px)] overflow-auto">
                     <GridItemContent item={item} charts={charts} />
                   </div>
                 </div>
@@ -286,6 +295,7 @@ export function DashboardBuilder({ initialDashboard, onSave, onCancel }: Dashboa
             </ResponsiveGridLayout>
           )}
         </div>
+
 
         {/* Right sidebar */}
         <div className="w-64 border-l border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">

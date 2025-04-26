@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { setAuthToken } from "@/lib/auth"
 
+
 export default function HomePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
