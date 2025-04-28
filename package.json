@@ -27,7 +27,8 @@
     "react-dnd-html5-backend": "^16.0.1",
     "date-fns":"4.1.0",
     "react-grid-layout":"^1.4.4",
-    "uuid":"^9.0.0"
+    "uuid":"^9.0.0",
+    "@radix-ui/react-avatar": "^1.0.3"
   },
   "devDependencies": {
     "typescript": "^5",

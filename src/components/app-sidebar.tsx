@@ -23,7 +23,7 @@ export function AppSidebar() {
   const router = useRouter()
   const pathname = usePathname()
   const { logout } = useAuth()
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(true)
   const [isHovering, setIsHovering] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [openSubmenu, setOpenSubmenu] = useState<string | null>("dashboard") // Mặc định mở submenu Dashboard
@@ -89,7 +89,7 @@ export function AppSidebar() {
   // Danh sách các mục điều hướng
   const navItems = [
     {
-      name: "Dashboard",
+      name: "Analytics",
       icon: <LayoutDashboard className="h-5 w-5" />,
       href: "/home",
       active:
@@ -153,29 +153,22 @@ export function AppSidebar() {
         onMouseLeave={handleMouseLeave}
       >
         {/* Toggle button - only on desktop */}
-        <button
+        {/* <button
           className="absolute -right-3 top-12 hidden md:flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400"
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
           {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
-        </button>
+        </button> */}
 
         {/* Logo */}
-        <div className="flex h-16 items-center justify-center border-b border-gray-200 dark:border-gray-800">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-8 w-8 text-violet-600"
-          >
-            <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3" />
-          </svg>
+        <div className="flex h-16 items-center justify-center">
+          <img
+            src="/AppotaWallet.svg"
+            alt="Appota Logo"
+            className="h-10 w-10 text-violet-600"
+          />
           {(!isCollapsed || isHovering || isMobileOpen) && (
-            <span className="ml-2 text-xl font-semibold transition-opacity duration-300">AppName</span>
+            <span className="ml-2 text-xl font-semibold transition-opacity duration-300">BI</span>
           )}
         </div>
 
@@ -210,7 +203,7 @@ export function AppSidebar() {
                     {/* Submenu */}
                     {(openSubmenu === item.name.toLowerCase() || (!isCollapsed && isHovering) || isMobileOpen) && (
                       <ul
-                        className={`mt-1 ml-2 pl-4 border-l border-gray-200 dark:border-gray-700 space-y-1 ${
+                        className={`mt-1 ml-2 pl-4 space-y-1 ${
                           isCollapsed && !isHovering && !isMobileOpen ? "hidden" : "animate-fadeIn"
                         }`}
                       >

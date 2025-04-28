@@ -62,7 +62,7 @@ export default function SettingsPage() {
       <div className="transition-all duration-300 md:pl-64">
         <AppHeader username={username} avatarUrl={avatarUrl} />
 
-        <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-26">
           <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
             <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-6">Cài đặt tài khoản</h2>
 

@@ -149,10 +149,10 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <AppSidebar />
 
-      <div className="transition-all duration-300">
+      <div className="transition-all duration-300 md:pl-16">
         <AppHeader username={username} avatarUrl={avatarUrl} />
 
-        <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-26">
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center">
               <LayoutDashboard className="h-6 w-6 text-violet-600 mr-2" />

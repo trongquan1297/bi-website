@@ -89,7 +89,7 @@ export default function ChatPage() {
           </div>
         </header>
 
-        <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-26">
           <div className="bg-white dark:bg-gray-800 shadow rounded-lg flex flex-col h-[calc(100vh-12rem)]">
             {/* Chat messages */}
             <div className="flex-1 p-4 overflow-y-auto">
