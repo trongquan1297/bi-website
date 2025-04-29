@@ -1,6 +1,6 @@
 import { getAuthHeader } from "./auth"
 
-const API_BASE_URL = process.env.BI_API_URL || "http://localhost:8000"
+const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL || "http://localhost:8000"
 
 /**
  * Hàm tiện ích để gọi API với token xác thực

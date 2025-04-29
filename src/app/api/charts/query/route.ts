@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
     try {
       console.log("Sending request to backend...")
       const response = await fetch(
-        `${process.env.BI_API_URL || "http://localhost:8000"}/api/charts/query`,
+        `${process.env.NEXT_PUBLIC_BI_API_URL || "http://localhost:8000"}/api/charts/query`,
         {
           method: "POST",
           headers: {

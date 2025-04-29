@@ -18,7 +18,7 @@ import {
 import { Line, Bar, Pie, Doughnut, Scatter, Radar, PolarArea } from "react-chartjs-2"
 import type { ChartData, ChartType } from "./types"
 
-const API_BASE_URL = process.env.BI_API_URL || "http://localhost:8000"
+const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL || "http://localhost:8000"
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend)
 
@@ -48,7 +48,7 @@ export function ChartPreview({ chartId, chartType: initialChartType }: ChartPrev
 
       try {
         const authHeader = getAuthHeader()
-        const response = await fetch(`${API_BASE_URL}/api/charts/${chartId}`, {
+        const response = await fetch(`/api/charts/${chartId}`, {
           headers: {
             "Content-Type": "application/json",
             Authorization: authHeader,
