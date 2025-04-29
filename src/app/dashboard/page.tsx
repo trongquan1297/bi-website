@@ -21,8 +21,6 @@ import {
 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
-const API_BASE_URL = process.env.BI_API_URL || "https://biapi-dev.appotapay.com"
-
 interface Dashboard {
   id: number
   name: string
@@ -81,7 +79,7 @@ export default function DashboardPage() {
 
     try {
       const authHeader = getAuthHeader()
-      const response = await fetch(`${API_BASE_URL}/api/dashboards/get`, {
+      const response = await fetch(`/api/dashboard/get`, {
         headers: {
           Authorization: authHeader,
         },
@@ -113,7 +111,7 @@ export default function DashboardPage() {
 
     try {
       const authHeader = getAuthHeader()
-      const response = await fetch(`${API_BASE_URL}/api/dashboards/${id}`, {
+      const response = await fetch(`/api/dashboard/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: authHeader,

@@ -164,7 +164,7 @@ export default function DashboardViewPage() {
 
     try {
       const authHeader = getAuthHeader()
-      const response = await fetch(`${API_BASE_URL}/api/dashboards/${dashboardId}`, {
+      const response = await fetch(`/api/dashboard/${dashboardId}`, {
         headers: {
           Authorization: authHeader,
         },
@@ -197,7 +197,7 @@ export default function DashboardViewPage() {
   const fetchCharts = async () => {
     try {
       const authHeader = getAuthHeader()
-      const response = await fetch(`${API_BASE_URL}/api/charts/get`, {
+      const response = await fetch(`/api/charts/get`, {
         headers: {
           Authorization: authHeader,
         },
@@ -274,7 +274,7 @@ export default function DashboardViewPage() {
   const refreshComments = async () => {
     try {
       const authHeader = getAuthHeader()
-      const response = await fetch(`${API_BASE_URL}/api/dashboards/${dashboardId}`, {
+      const response = await fetch(`/api/dashboard/${dashboardId}`, {
         headers: {
           Authorization: authHeader,
         },

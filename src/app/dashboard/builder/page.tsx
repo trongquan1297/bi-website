@@ -29,8 +29,6 @@ export default function DashboardBuilderPage() {
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const API_BASE_URL = process.env.BI_API_URL || "http://localhost:8000"
-
   // Fetch dashboard data if editing an existing dashboard
   const fetchDashboard = useCallback(async (id: string) => {
     setIsLoading(true)
@@ -38,7 +36,7 @@ export default function DashboardBuilderPage() {
 
     try {
       const authHeader = getAuthHeader()
-      const response = await fetch(`${API_BASE_URL}/api/dashboards/${id}`, {
+      const response = await fetch(`/api/dashboard/${id}`, {
         headers: {
           Authorization: authHeader,
         },
@@ -104,7 +102,7 @@ export default function DashboardBuilderPage() {
   const handleSaveDashboard = async (dashboardData: any) => {
     try {
       const authHeader = getAuthHeader()
-      const url = dashboardId ? `${API_BASE_URL}/api/dashboards/${dashboardId}` : `${API_BASE_URL}/api/dashboards`
+      const url = dashboardId ? `/api/dashboard/${dashboardId}` : `/api/dashboard`
       const method = dashboardId ? "PUT" : "POST"
 
       const response = await fetch(url, {

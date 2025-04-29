@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
 
     try {
-      const response = await fetch("${API_BASE_URL}/api/dashboards", {
+      const response = await fetch(`${API_BASE_URL}/api/dashboards`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
