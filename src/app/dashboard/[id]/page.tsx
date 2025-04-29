@@ -463,32 +463,6 @@ export default function DashboardViewPage() {
     setHistoryIndex(newHistory.length)
   }
 
-  // Download canvas as image
-  const downloadCanvas = () => {
-    if (!canvasRef.current) return
-
-    const canvas = canvasRef.current
-    const dashboardName = dashboard?.name || "dashboard"
-    const link = document.createElement("a")
-
-    // For now, just download the canvas drawing
-    link.href = canvas.toDataURL("image/png")
-    link.download = `${dashboardName}-annotations.png`
-    link.click()
-  }
-
-  // Toggle drawing mode
-  const toggleDrawingMode = () => {
-    setIsDrawingMode(!isDrawingMode)
-    if (isErasing) setIsErasing(false)
-  }
-
-  // Toggle eraser
-  const toggleEraser = () => {
-    setIsErasing(!isErasing)
-    if (!isDrawingMode) setIsDrawingMode(true)
-  }
-
   // Show loading state
   if (isLoading) {
     return (
@@ -532,13 +506,30 @@ export default function DashboardViewPage() {
       useCORS: true, // nếu dashboard có ảnh từ domain khác
       scale: 2, // tăng độ nét (HD export)
     });
+
+    // Hàm định dạng ngày
+    const formatDate = () => {
+      const date = new Date();
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}${month}${year}`;
+    };
+
+    const dashboardName = dashboard?.name || "unnamed";
+    const cleanDashboardName = dashboardName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-') // Thay thế ký tự không phải chữ/số bằng dấu gạch ngang
+      .replace(/^-+|-+$/g, '');
+
+    const fileName = `dashboard-${cleanDashboardName}-${formatDate()}.png`;
   
     const dataUrl = canvas.toDataURL("image/png");
   
     // Tải xuống file
     const link = document.createElement("a");
     link.href = dataUrl;
-    link.download = "dashboard.png";
+    link.download = fileName;
     link.click();
   };
 
