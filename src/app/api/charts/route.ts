@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
+const API_BASE_URL = process.env.BI_API_URL || "http://localhost:8000"
+
 export async function GET(request: NextRequest) {
   try {
     // Lấy token từ request headers
@@ -11,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     try {
       // Cập nhật URL endpoint lấy danh sách chart
-      const response = await fetch("http://localhost:8000/api/charts/get", {
+      const response = await fetch(`${API_BASE_URL}/api/charts/get`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
     const timeoutId = setTimeout(() => controller.abort(), 8000) // 8 giây timeout
 
     try {
-      const response = await fetch("http://localhost:8000/api/charts", {
+      const response = await fetch(`${API_BASE_URL}/api/charts`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -21,6 +21,8 @@ import {
 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
+const API_BASE_URL = process.env.BI_API_URL || "http://localhost:8000"
+
 interface Dashboard {
   id: number
   name: string
@@ -79,7 +81,7 @@ export default function DashboardPage() {
 
     try {
       const authHeader = getAuthHeader()
-      const response = await fetch("http://localhost:8000/api/dashboards/get", {
+      const response = await fetch(`${API_BASE_URL}/api/dashboards/get`, {
         headers: {
           Authorization: authHeader,
         },
@@ -111,7 +113,7 @@ export default function DashboardPage() {
 
     try {
       const authHeader = getAuthHeader()
-      const response = await fetch(`http://localhost:8000/api/dashboards/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/dashboards/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: authHeader,

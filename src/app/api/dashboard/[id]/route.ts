@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
+const API_BASE_URL = process.env.BI_API_URL || "http://localhost:8000"
+
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const id = params.id
@@ -10,7 +12,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
 
     try {
-      const response = await fetch(`http://localhost:8000/api/dashboards/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/dashboards/${id}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -58,7 +60,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
 
     try {
-      const response = await fetch(`http://localhost:8000/api/dashboards/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/dashboards/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -110,7 +112,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
 
     try {
-      const response = await fetch(`http://localhost:8000/api/dashboards/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/dashboards/${id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
+const API_BASE_URL = process.env.BI_API_URL || "http://localhost:8000"
+
 export async function GET(request: NextRequest) {
   try {
     // Lấy token từ request headers
@@ -20,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     try {
       const response = await fetch(
-        `http://localhost:8000/api/database/columns?table_name=${encodeURIComponent(
+        `${API_BASE_URL}/api/database/columns?table_name=${encodeURIComponent(
           tableName,
         )}&schema_name=${encodeURIComponent(schemaName)}`,
         {

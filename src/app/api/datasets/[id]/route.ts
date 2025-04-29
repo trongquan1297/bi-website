@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
+const API_BASE_URL = process.env.BI_API_URL || "http://localhost:8000"
+
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const id = params.id
@@ -10,7 +12,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const timeoutId = setTimeout(() => controller.abort(), 8000) // 8 giây timeout
 
     try {
-      const response = await fetch(`http://localhost:8000/api/datasets/delete/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/datasets/delete/${id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

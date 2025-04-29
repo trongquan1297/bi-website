@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation"
 import Cookies from "js-cookie"
 
 // Lấy cấu hình từ biến môi trường
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
+const API_BASE_URL = process.env.BI_API_URL || "http://localhost:8000"
 const TOKEN_EXPIRY_DAYS = Number.parseInt(process.env.AUTH_TOKEN_EXPIRY_DAYS || "7")
 const COOKIE_SECURE = process.env.AUTH_COOKIE_SECURE === "true"
 const COOKIE_SAME_SITE = process.env.AUTH_COOKIE_SAME_SITE || "strict"

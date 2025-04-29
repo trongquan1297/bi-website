@@ -28,7 +28,8 @@
     "date-fns":"4.1.0",
     "react-grid-layout":"^1.4.4",
     "uuid":"^9.0.0",
-    "@radix-ui/react-avatar": "^1.0.3"
+    "@radix-ui/react-avatar": "^1.0.3",
+    "html2canvas":"^1.4.1"
   },
   "devDependencies": {
     "typescript": "^5",

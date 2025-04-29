@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
 // Lấy cấu hình từ biến môi trường
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
+const API_BASE_URL = process.env.BI_API_URL || "http://localhost:8000"
 
 export async function POST(request: NextRequest) {
   try {

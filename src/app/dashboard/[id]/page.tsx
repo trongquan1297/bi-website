@@ -16,6 +16,9 @@ import { Slider } from "@/components/ui/slider"
 import { formatDistanceToNow } from "date-fns"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Textarea } from "@/components/ui/textarea"
+import html2canvas from "html2canvas";
+
+const API_BASE_URL = process.env.BI_API_URL || "http://localhost:8000"
 
 // Cập nhật interface Dashboard để phù hợp với response format
 interface Dashboard {
@@ -84,7 +87,7 @@ export default function DashboardViewPage() {
   const handleDeleteComment = async (commentId: number) => {
     try {
       const authHeader = getAuthHeader()
-      const response = await fetch(`http://localhost:8000/api/comments/${commentId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/comments/${commentId}`, {
         method: "DELETE",
         headers: {
           Authorization: authHeader,
@@ -161,7 +164,7 @@ export default function DashboardViewPage() {
 
     try {
       const authHeader = getAuthHeader()
-      const response = await fetch(`http://localhost:8000/api/dashboards/${dashboardId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/dashboards/${dashboardId}`, {
         headers: {
           Authorization: authHeader,
         },
@@ -194,7 +197,7 @@ export default function DashboardViewPage() {
   const fetchCharts = async () => {
     try {
       const authHeader = getAuthHeader()
-      const response = await fetch("http://localhost:8000/api/charts/get", {
+      const response = await fetch(`${API_BASE_URL}/api/charts/get`, {
         headers: {
           Authorization: authHeader,
         },
@@ -226,7 +229,7 @@ export default function DashboardViewPage() {
 
     try {
       const authHeader = getAuthHeader()
-      const response = await fetch("http://localhost:8000/api/comments", {
+      const response = await fetch(`${API_BASE_URL}/api/comments`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -271,7 +274,7 @@ export default function DashboardViewPage() {
   const refreshComments = async () => {
     try {
       const authHeader = getAuthHeader()
-      const response = await fetch(`http://localhost:8000/api/dashboards/${dashboardId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/dashboards/${dashboardId}`, {
         headers: {
           Authorization: authHeader,
         },
@@ -528,6 +531,24 @@ export default function DashboardViewPage() {
       </div>
     )
   }
+  const exportDashboard = async () => {
+    const dashboardElement = document.getElementById("dashboard-capture");
+    if (!dashboardElement) return;
+  
+    const canvas = await html2canvas(dashboardElement, {
+      backgroundColor: null, // giữ trong suốt nếu cần
+      useCORS: true, // nếu dashboard có ảnh từ domain khác
+      scale: 2, // tăng độ nét (HD export)
+    });
+  
+    const dataUrl = canvas.toDataURL("image/png");
+  
+    // Tải xuống file
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = "dashboard.png";
+    link.click();
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -667,7 +688,7 @@ export default function DashboardViewPage() {
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
-                  onClick={downloadCanvas}
+                  onClick={exportDashboard}
                   className="flex items-center gap-2 transition text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400"
                 >
                   <Download className="h-4 w-4" />
@@ -685,53 +706,56 @@ export default function DashboardViewPage() {
             </div>
           </div>
 
-          {/* Dashboard content */}
-          <div className="relative">
-            <div id="dashboard-container" className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 min-h-[70vh]">
-              <div
-                className="grid gap-4"
-                style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gridAutoRows: "80px" }}
-              >
-                {dashboard.layout.map((item, index) => {
-                  const isChart = item.type === "chart"
-                  const itemClassName = isChart
-                    ? "bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden"
-                    : "bg-white dark:bg-gray-800 overflow-hidden"
+          <div id="dashboard-capture" className="relative w-full h-full">
 
-                  const safeKey = `${item.i}_${index}` // 👈 thêm index để tránh trùng
+            {/* Dashboard content */}
+            <div className="relative">
+              <div id="dashboard-container" className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 min-h-[70vh]">
+                <div
+                  className="grid gap-4"
+                  style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gridAutoRows: "80px" }}
+                >
+                  {dashboard.layout.map((item, index) => {
+                    const isChart = item.type === "chart"
+                    const itemClassName = isChart
+                      ? "bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden"
+                      : "bg-white dark:bg-gray-800 overflow-hidden"
 
-                  return (
-                    <div
-                      key={safeKey}
-                      className={itemClassName}
-                      style={{
-                        gridColumnStart: item.x + 1,
-                        gridColumnEnd: item.x + item.w + 1,
-                        gridRowStart: item.y + 1,
-                        gridRowEnd: item.y + item.h + 1,
-                      }}
-                    >
-                      <div className="h-full">
-                        <GridItemContent item={item} charts={charts} />
+                    const safeKey = `${item.i}_${index}` // 👈 thêm index để tránh trùng
+
+                    return (
+                      <div
+                        key={safeKey}
+                        className={itemClassName}
+                        style={{
+                          gridColumnStart: item.x + 1,
+                          gridColumnEnd: item.x + item.w + 1,
+                          gridRowStart: item.y + 1,
+                          gridRowEnd: item.y + item.h + 1,
+                        }}
+                      >
+                        <div className="h-full">
+                          <GridItemContent item={item} charts={charts} />
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
-            </div>
 
-            {/* Canvas overlay for drawing */}
-            <canvas
-              ref={canvasRef}
-              className={`absolute top-0 left-0 w-full h-full ${isDrawingMode ? "cursor-crosshair" : "pointer-events-none"}`}
-              onMouseDown={startDrawing}
-              onMouseMove={draw}
-              onMouseUp={endDrawing}
-              onMouseLeave={endDrawing}
-              onTouchStart={startDrawing}
-              onTouchMove={draw}
-              onTouchEnd={endDrawing}
-            />
+              {/* Canvas overlay for drawing */}
+              <canvas
+                ref={canvasRef}
+                className={`absolute top-0 left-0 w-full h-full ${isDrawingMode ? "cursor-crosshair" : "pointer-events-none"}`}
+                onMouseDown={startDrawing}
+                onMouseMove={draw}
+                onMouseUp={endDrawing}
+                onMouseLeave={endDrawing}
+                onTouchStart={startDrawing}
+                onTouchMove={draw}
+                onTouchEnd={endDrawing}
+              />
+            </div>
           </div>
 
           {/* Comments section */}
