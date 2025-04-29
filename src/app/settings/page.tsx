@@ -59,7 +59,7 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <AppSidebar />
 
-      <div className="transition-all duration-300 md:pl-64">
+      <div className="transition-all duration-300 md:pl-16">
         <AppHeader username={username} avatarUrl={avatarUrl} />
 
         <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-26">

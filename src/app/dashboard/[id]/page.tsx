@@ -18,8 +18,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Textarea } from "@/components/ui/textarea"
 import html2canvas from "html2canvas";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
-
 // Cập nhật interface Dashboard để phù hợp với response format
 interface Dashboard {
   id: number
@@ -81,13 +79,12 @@ export default function DashboardViewPage() {
   const [newComment, setNewComment] = useState("")
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const [commentError, setCommentError] = useState<string | null>(null)
-  const commentsEndRef = useRef<HTMLDivElement>(null)
 
   // Handle delete comment
   const handleDeleteComment = async (commentId: number) => {
     try {
       const authHeader = getAuthHeader()
-      const response = await fetch(`${API_BASE_URL}/api/comments/${commentId}`, {
+      const response = await fetch(`/api/comment/${commentId}`, {
         method: "DELETE",
         headers: {
           Authorization: authHeader,
@@ -105,6 +102,8 @@ export default function DashboardViewPage() {
       setCommentError("Could not delete comment. Please try again.")
     }
   }
+
+
 
   // Canvas drawing state
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -148,13 +147,6 @@ export default function DashboardViewPage() {
     fetchDashboard()
     fetchCharts()
   }, [])
-
-  // Scroll to bottom of comments when new comments are added
-  useEffect(() => {
-    if (commentsEndRef.current) {
-      commentsEndRef.current.scrollIntoView({ behavior: "smooth" })
-    }
-  }, [comments])
 
   // Fetch dashboard data
   // Cập nhật hàm fetchDashboard để xử lý đúng response format
@@ -229,7 +221,7 @@ export default function DashboardViewPage() {
 
     try {
       const authHeader = getAuthHeader()
-      const response = await fetch(`${API_BASE_URL}/api/comments`, {
+      const response = await fetch(`/api/comment`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -844,7 +836,6 @@ export default function DashboardViewPage() {
                   </div>
                 ))
               )}
-              <div ref={commentsEndRef} />
             </div>
 
             {/* Comment error */}

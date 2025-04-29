@@ -59,10 +59,10 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <AppSidebar />
 
-      <div className="transition-all duration-300 md:pl-64">
+      <div className="transition-all duration-300 md:pl-16">
         <AppHeader username={username || "Người dùng"} avatarUrl={avatarUrl} />
 
-        <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-22">
           <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
             <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Chào mừng, {username}!</h2>
             <p className="text-gray-600 dark:text-gray-300">
