@@ -21,7 +21,7 @@ import {
 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
-const API_BASE_URL = process.env.BI_API_URL || "http://localhost:8000"
+const API_BASE_URL = process.env.BI_API_URL || "https://bi-dev.appotapay.com"
 
 interface Dashboard {
   id: number
