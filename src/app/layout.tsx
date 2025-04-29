@@ -5,6 +5,9 @@ import "./globals.css"
 export const metadata = {
   title: "BI",
   description: "Appotapay Bussiness Intelligence",
+  icons: {
+    icon: "/favicon.ico",
+  }
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
