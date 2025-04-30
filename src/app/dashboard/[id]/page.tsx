@@ -350,6 +350,7 @@ export default function DashboardViewPage() {
     if (!ctx) return
 
     setIsDrawing(true)
+    document.body.classList.add("overflow-hidden");
 
     // Get coordinates
     let x, y
@@ -403,6 +404,7 @@ export default function DashboardViewPage() {
     if (!isDrawing || !isDrawingMode || !canvasRef.current) return
 
     setIsDrawing(false)
+    document.body.classList.remove("overflow-hidden");
 
     const canvas = canvasRef.current
     const ctx = canvas.getContext("2d")
