@@ -700,7 +700,7 @@ export default function DashboardViewPage() {
             </div>
           </div>
 
-          <div id="dashboard-capture" className="relative w-full h-full overscroll-none">
+          <div id="dashboard-capture" className="relative w-full h-full overscroll-contain">
 
             {/* Dashboard content */}
             <div className="relative">
