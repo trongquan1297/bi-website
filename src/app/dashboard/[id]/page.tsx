@@ -341,11 +341,6 @@ export default function DashboardViewPage() {
     return () => window.removeEventListener("resize", handleResize)
   }, [])
 
-  // Prevent touch scroll when drawing
-  function preventTouchScroll(e: TouchEvent) {
-    e.preventDefault(); // NGĂN scroll
-  }
-
   // Drawing functions
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isDrawingMode || !canvasRef.current) return
@@ -355,9 +350,6 @@ export default function DashboardViewPage() {
     if (!ctx) return
 
     setIsDrawing(true)
-    // Disable body scroll
-    document.body.classList.add("overflow-hidden");
-    document.addEventListener("touchmove", preventTouchScroll, { passive: false });
 
     // Get coordinates
     let x, y
@@ -411,9 +403,6 @@ export default function DashboardViewPage() {
     if (!isDrawing || !isDrawingMode || !canvasRef.current) return
 
     setIsDrawing(false)
-    // Enable body scroll
-    document.body.classList.remove("overflow-hidden");
-    document.removeEventListener("touchmove", preventTouchScroll);
 
     const canvas = canvasRef.current
     const ctx = canvas.getContext("2d")
@@ -703,7 +692,7 @@ export default function DashboardViewPage() {
           <div id="dashboard-capture" className="relative w-full h-full">
 
             {/* Dashboard content */}
-            <div className="relative">
+            <div className="relative touch-none overscroll-none">
               <div id="dashboard-container" className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 min-h-[70vh]">
                 <div
                   className="grid gap-4"

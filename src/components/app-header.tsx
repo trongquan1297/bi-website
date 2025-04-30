@@ -34,7 +34,7 @@ export function AppHeader({ username, avatarUrl }: AppHeaderProps) {
   }, [pathname])
 
   return (
-    <header className="fixed top-0 left-16 right-0 z-30 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-all duration-300">
+    <header className="fixed top-0 left-0 md:left-16 right-0 z-30 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-all duration-300">
       <div className="flex justify-between items-center px-4 sm:px-6 lg:px-8 py-3">
         {/* Mobile menu button */}
         <button

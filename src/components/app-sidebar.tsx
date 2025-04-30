@@ -40,14 +40,12 @@ export function AppSidebar() {
   }
 
   const handleMouseLeave = () => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current)
-    }
-
-    hoverTimeoutRef.current = setTimeout(() => {
-      setIsHovering(false)
-      setIsCollapsed(true)
-    }, 300) // Độ trễ trước khi ẩn sidebar
+    if (window.innerWidth >= 768) {
+      hoverTimeoutRef.current = setTimeout(() => {
+        setIsHovering(false)
+        setIsCollapsed(true)
+      }, 300)
+    } // Độ trễ trước khi ẩn sidebar
   }
 
   // Xử lý click bên ngoài sidebar để ẩn sidebar trên mobile
@@ -129,7 +127,11 @@ export function AppSidebar() {
       {isMobileOpen && (
         <div
           className="fixed inset-0 bg-black/30 backdrop-blur-sm z-30 md:hidden"
-          onClick={() => setIsMobileOpen(false)}
+          onMouseDown={(e) => {
+            if (sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) {
+              setIsMobileOpen(false)
+            }
+          }}
         />
       )}
 
