@@ -341,6 +341,11 @@ export default function DashboardViewPage() {
     return () => window.removeEventListener("resize", handleResize)
   }, [])
 
+  // Prevent touch scroll when drawing
+  function preventTouchScroll(e: TouchEvent) {
+    e.preventDefault(); // NGĂN scroll
+  }
+
   // Drawing functions
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isDrawingMode || !canvasRef.current) return
@@ -350,7 +355,9 @@ export default function DashboardViewPage() {
     if (!ctx) return
 
     setIsDrawing(true)
+    // Disable body scroll
     document.body.classList.add("overflow-hidden");
+    document.addEventListener("touchmove", preventTouchScroll, { passive: false });
 
     // Get coordinates
     let x, y
@@ -404,7 +411,9 @@ export default function DashboardViewPage() {
     if (!isDrawing || !isDrawingMode || !canvasRef.current) return
 
     setIsDrawing(false)
+    // Enable body scroll
     document.body.classList.remove("overflow-hidden");
+    document.removeEventListener("touchmove", preventTouchScroll);
 
     const canvas = canvasRef.current
     const ctx = canvas.getContext("2d")
@@ -691,7 +700,7 @@ export default function DashboardViewPage() {
             </div>
           </div>
 
-          <div id="dashboard-capture" className="relative w-full h-full">
+          <div id="dashboard-capture" className="relative w-full h-full overscroll-none">
 
             {/* Dashboard content */}
             <div className="relative">
