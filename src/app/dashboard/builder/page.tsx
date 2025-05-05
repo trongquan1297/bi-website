@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/lib/auth"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
-import { getAuthHeader } from "@/lib/auth"
 import { DashboardBuilder } from "@/components/dashboard/dashboard-builder"
 import { Loader2 } from "lucide-react"
 
@@ -17,6 +16,8 @@ interface Dashboard {
   created_at: string
   updated_at: string
 }
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
 export default function DashboardBuilderPage() {
   const router = useRouter()
@@ -35,11 +36,9 @@ export default function DashboardBuilderPage() {
     setError(null)
 
     try {
-      const authHeader = getAuthHeader()
-      const response = await fetch(`/api/dashboard/${id}`, {
-        headers: {
-          Authorization: authHeader,
-        },
+      const response = await fetch(`${API_BASE_URL}/api/dashboards/${id}`, {
+        method: "GET",
+        credentials: "include"
       })
 
       if (!response.ok) {
@@ -101,16 +100,15 @@ export default function DashboardBuilderPage() {
   // Handle save dashboard
   const handleSaveDashboard = async (dashboardData: any) => {
     try {
-      const authHeader = getAuthHeader()
-      const url = dashboardId ? `/api/dashboard/${dashboardId}` : `/api/dashboard`
+      const url = dashboardId ? `${API_BASE_URL}/api/dashboards/${dashboardId}` : `${API_BASE_URL}/api/dashboards`
       const method = dashboardId ? "PUT" : "POST"
 
       const response = await fetch(url, {
-        method,
+        method: method,
         headers: {
           "Content-Type": "application/json",
-          Authorization: authHeader,
         },
+        credentials: "include",
         body: JSON.stringify(dashboardData),
       })
       console.log("Saved dashboard data:", dashboardData)

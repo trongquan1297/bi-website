@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { Loader2 } from "lucide-react"
-import { getAuthHeader } from "@/lib/auth"
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -47,12 +46,9 @@ export function ChartPreview({ chartId, chartType: initialChartType }: ChartPrev
       setError(null)
 
       try {
-        const authHeader = getAuthHeader()
-        const response = await fetch(`/api/charts/${chartId}`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: authHeader,
-          },
+        const response = await fetch(`${API_BASE_URL}/api/charts/${chartId}`, {
+          method: "GET",
+          credentials: "include",
         })
 
         if (!response.ok) {

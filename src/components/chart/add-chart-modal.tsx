@@ -4,7 +4,6 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { X, Loader2 } from "lucide-react"
-import { getAuthHeader } from "@/lib/auth"
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -88,12 +87,10 @@ export function AddChartModal({ isOpen, onClose, onSuccess }: AddChartModalProps
     setError(null)
 
     try {
-      const authHeader = getAuthHeader()
 
       const response = await fetch("/api/datasets", {
-        headers: {
-          Authorization: authHeader,
-        },
+        method: "GET",
+        credentials: "include"
       })
 
       if (!response.ok) {
@@ -130,14 +127,12 @@ export function AddChartModal({ isOpen, onClose, onSuccess }: AddChartModalProps
     setError(null)
 
     try {
-      const authHeader = getAuthHeader()
 
       const response = await fetch(
         `/api/database/columns?table_name=${encodeURIComponent(tableName)}&schema_name=${encodeURIComponent(schemaName)}`,
         {
-          headers: {
-            Authorization: authHeader,
-          },
+          method: "GET",
+          credentials: "include"
         },
       )
 
@@ -246,7 +241,6 @@ export function AddChartModal({ isOpen, onClose, onSuccess }: AddChartModalProps
     setError(null)
 
     try {
-      const authHeader = getAuthHeader()
 
       // Cập nhật layout title
       const updatedFormData = {
@@ -263,9 +257,9 @@ export function AddChartModal({ isOpen, onClose, onSuccess }: AddChartModalProps
       const response = await fetch("/api/charts", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: authHeader,
+          "Content-Type": "application/json"
         },
+        credentials: "include",
         body: JSON.stringify(updatedFormData),
       })
 

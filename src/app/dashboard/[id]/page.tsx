@@ -1,13 +1,11 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useState, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { useAuth } from "@/lib/auth"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
-import { getAuthHeader } from "@/lib/auth"
 import { Loader2, Edit, Download, Pencil, Eraser, Send, RefreshCw, Undo, Redo, Trash2 } from "lucide-react"
 import { GridItemContent } from "@/components/dashboard/grid-item-content"
 import { Button } from "@/components/ui/button"
@@ -17,6 +15,8 @@ import { formatDistanceToNow } from "date-fns"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Textarea } from "@/components/ui/textarea"
 import html2canvas from "html2canvas-pro";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
 // Cập nhật interface Dashboard để phù hợp với response format
 interface Dashboard {
@@ -83,12 +83,9 @@ export default function DashboardViewPage() {
   // Handle delete comment
   const handleDeleteComment = async (commentId: number) => {
     try {
-      const authHeader = getAuthHeader()
-      const response = await fetch(`/api/comment/${commentId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/comments/${commentId}`, {
         method: "DELETE",
-        headers: {
-          Authorization: authHeader,
-        },
+        credentials: "include"
       })
 
       if (!response.ok) {
@@ -155,11 +152,9 @@ export default function DashboardViewPage() {
     setError(null)
 
     try {
-      const authHeader = getAuthHeader()
-      const response = await fetch(`/api/dashboard/${dashboardId}`, {
-        headers: {
-          Authorization: authHeader,
-        },
+      const response = await fetch(`${API_BASE_URL}/api/dashboards/${dashboardId}`, {
+        method: "GET",
+        credentials: "include"
       })
 
       if (!response.ok) {
@@ -188,11 +183,9 @@ export default function DashboardViewPage() {
   // Fetch charts data
   const fetchCharts = async () => {
     try {
-      const authHeader = getAuthHeader()
-      const response = await fetch(`/api/charts/get`, {
-        headers: {
-          Authorization: authHeader,
-        },
+      const response = await fetch(`${API_BASE_URL}/api/charts/get`, {
+        method: "GET",
+        credentials: "include"
       })
 
       if (!response.ok) {
@@ -220,13 +213,12 @@ export default function DashboardViewPage() {
     setCommentError(null)
 
     try {
-      const authHeader = getAuthHeader()
-      const response = await fetch(`/api/comment`, {
+      const response = await fetch(`${API_BASE_URL}/api/comments`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: authHeader,
         },
+        credentials: "include",
         body: JSON.stringify({
           resource_type: "dashboard",
           resource_id: dashboardId,
@@ -265,11 +257,9 @@ export default function DashboardViewPage() {
   // Refresh comments
   const refreshComments = async () => {
     try {
-      const authHeader = getAuthHeader()
-      const response = await fetch(`/api/dashboard/${dashboardId}`, {
-        headers: {
-          Authorization: authHeader,
-        },
+      const response = await fetch(`${API_BASE_URL}/api/dashboards/${dashboardId}`, {
+        method: "GET",
+        credentials: "include"
       })
 
       if (!response.ok) {

@@ -7,7 +7,6 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
 import { ChartBuilderModal } from "@/components/chart-builder"
 import { LineChart, Plus, Download, RefreshCw, Search, Trash2, Edit } from "lucide-react"
-import { getAuthHeader } from "@/lib/auth"
 
 interface Chart {
   id: number
@@ -18,6 +17,8 @@ interface Chart {
   updated_at: string
   owner?: string
 }
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
 export default function ChartBuilderPage() {
   const router = useRouter()
@@ -70,14 +71,10 @@ export default function ChartBuilderPage() {
     setError(null)
 
     try {
-      // Lấy auth header từ client
-      const authHeader = getAuthHeader()
 
-      // Sử dụng API route proxy để tránh lỗi CORS
-      const response = await fetch("/api/charts", {
-        headers: {
-          Authorization: authHeader,
-        },
+      const response = await fetch(`${API_BASE_URL}/api/charts`, {
+        method: "GET",
+        credentials: "include"
       })
 
       if (!response.ok) {

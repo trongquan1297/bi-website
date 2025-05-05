@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { Responsive, WidthProvider } from "react-grid-layout"
 import { Plus, Save, X, LayoutGrid, Type, Heading1 } from "lucide-react"
-import { getAuthHeader } from "@/lib/auth"
 import { GridItemContent } from "./grid-item-content"
 import { ChartSelector } from "./chart-selector"
 import { TextEditor } from "./text-editor"
@@ -15,6 +14,7 @@ import "react-grid-layout/css/styles.css"
 import "react-resizable/css/styles.css"
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
+const APP_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
 interface DashboardBuilderProps {
   initialDashboard?: any
@@ -38,11 +38,9 @@ export function DashboardBuilder({ initialDashboard, onSave, onCancel }: Dashboa
   useEffect(() => {
     const fetchCharts = async () => {
       try {
-        const authHeader = getAuthHeader()
-        const response = await fetch("/api/charts", {
-          headers: {
-            Authorization: authHeader,
-          },
+        const response = await fetch(`${APP_BASE_URL}/api/charts/get`, {
+          method: "GET",
+          credentials: "include",
         })
 
         if (!response.ok) {

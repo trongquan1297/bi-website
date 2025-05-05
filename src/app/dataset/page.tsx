@@ -8,7 +8,8 @@ import { AppHeader } from "@/components/app-header"
 import { Database, Plus, Download, RefreshCw, Search, ExternalLink, Trash2, Info } from "lucide-react"
 import { AddDatasetModal } from "@/components/dataset/add-dataset-modal"
 import { ConfirmDeleteModal } from "@/components/dataset/confirm-delete-modal"
-import { getAuthHeader } from "@/lib/auth"
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
 interface Dataset {
   id: number
@@ -46,14 +47,9 @@ export default function DatasetPage() {
     setFetchAttempted(true)
 
     try {
-      // Lấy auth header từ client
-      const authHeader = getAuthHeader()
-
-      // Sử dụng API route proxy để tránh lỗi CORS
-      const response = await fetch("/api/datasets", {
-        headers: {
-          Authorization: authHeader,
-        },
+      const response = await fetch(`${API_BASE_URL}/api/datasets/get`, {
+        method: "GET",
+        credentials: "include",
         // Thêm timeout để tránh chờ quá lâu
         signal: AbortSignal.timeout(10000), // 10 giây timeout
       })
@@ -144,13 +140,10 @@ export default function DatasetPage() {
     setIsDeleting(true)
 
     try {
-      const authHeader = getAuthHeader()
 
-      const response = await fetch(`/api/datasets/${datasetToDelete.id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/datasets/${datasetToDelete.id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: authHeader,
-        },
+        credentials: "include",
         signal: AbortSignal.timeout(10000), // 10 giây timeout
       })
 

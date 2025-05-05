@@ -1,14 +1,13 @@
-import { getAuthHeader } from "@/lib/auth"
 import type { Dataset, Column, ChartData, ChartType } from "./types"
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
 // Fetch datasets from API
 export async function fetchDatasets(): Promise<Dataset[]> {
   try {
-    const authHeader = getAuthHeader()
-    const response = await fetch("/api/datasets", {
-      headers: {
-        Authorization: authHeader,
-      },
+    const response = await fetch(`${API_BASE_URL}/api/datasets/get`, {
+      method: "GET",
+      credentials: "include"
     })
 
     if (!response.ok) {
@@ -26,13 +25,11 @@ export async function fetchDatasets(): Promise<Dataset[]> {
 // Fetch columns from API
 export async function fetchColumns(tableName: string, schemaName: string): Promise<Column[]> {
   try {
-    const authHeader = getAuthHeader()
     const response = await fetch(
-      `/api/database/columns?table_name=${encodeURIComponent(tableName)}&schema_name=${encodeURIComponent(schemaName)}`,
+      `${API_BASE_URL}/api/database/columns?table_name=${encodeURIComponent(tableName)}&schema_name=${encodeURIComponent(schemaName)}`,
       {
-        headers: {
-          Authorization: authHeader,
-        },
+        method: "GET",
+        credentials: "include",
       },
     )
 
@@ -51,11 +48,9 @@ export async function fetchColumns(tableName: string, schemaName: string): Promi
 // Update the fetchChartById function to properly handle the chart data
 export async function fetchChartById(chartId: number) {
   try {
-    const authHeader = getAuthHeader()
-    const response = await fetch(`/api/charts/${chartId}`, {
-      headers: {
-        Authorization: authHeader,
-      },
+    const response = await fetch(`${API_BASE_URL}/api/charts/${chartId}`, {
+      method: "GET",
+      credentials: "include",
     })
 
     if (!response.ok) {
@@ -117,16 +112,15 @@ export async function saveChart(
     console.log("Body request:", JSON.stringify(requestBody, null, 2))
 
     // Call API to save chart
-    const authHeader = getAuthHeader()
-    const url = editChartId ? `/api/charts/${editChartId}` : "/api/charts"
+    const url = editChartId ? `${API_BASE_URL}/api/charts/${editChartId}` : `${API_BASE_URL}/api/charts`
     const method = editChartId ? "PUT" : "POST"
 
     const response = await fetch(url, {
-      method,
+      method: method,
       headers: {
         "Content-Type": "application/json",
-        Authorization: authHeader,
       },
+      credentials: "include",
       body: JSON.stringify(requestBody),
     })
 
@@ -174,13 +168,12 @@ export async function createChartPreview(
     console.log("Chart preview request:", requestBody)
 
     // Call API to get chart data
-    const authHeader = getAuthHeader()
-    const response = await fetch("/api/charts/query", {
+    const response = await fetch(`${API_BASE_URL}/api/charts/query`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: authHeader,
       },
+      credentials: "include",
       body: JSON.stringify(requestBody),
     })
 

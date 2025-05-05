@@ -1,83 +1,23 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import Cookies from "js-cookie"
 
 // Lấy cấu hình từ biến môi trường
-const TOKEN_EXPIRY_DAYS = Number.parseInt(process.env.AUTH_TOKEN_EXPIRY_DAYS || "7")
-const COOKIE_SECURE = process.env.AUTH_COOKIE_SECURE === "true"
-const COOKIE_SAME_SITE = process.env.AUTH_COOKIE_SAME_SITE || "strict"
-
-// Lưu cả token và token_type
-export function setAuthToken(token: string, tokenType = "bearer") {
-  // Lưu token vào localStorage để sử dụng trong các API call
-  localStorage.setItem("auth-token", token)
-  localStorage.setItem("token-type", tokenType)
-
-  // Lưu token vào cookie để middleware có thể truy cập
-  Cookies.set("auth-token", token, {
-    expires: TOKEN_EXPIRY_DAYS,
-    path: "/",
-    secure: COOKIE_SECURE,
-    sameSite: COOKIE_SAME_SITE as "strict" | "lax" | "none",
-  })
-  // Lưu thông tin avatar nếu có trong token
-  try {
-    const base64Url = token.split(".")[1]
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
-    const payload = JSON.parse(window.atob(base64))
-
-    if (payload.avatar_url) {
-      localStorage.setItem("user-avatar", payload.avatar_url)
-    }
-  } catch (error) {
-    console.error("Lỗi khi giải mã token để lấy avatar:", error)
-  }
-}
-
-export function getAuthToken(): string | null {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("auth-token")
-  }
-  return null
-}
-
-export function getTokenType(): string {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("token-type") || "bearer"
-  }
-  return "bearer"
-}
-
-// Tạo Authorization header
-export function getAuthHeader(): string {
-  const token = getAuthToken()
-  const tokenType = getTokenType()
-  if (!token) return ""
-
-  // Viết hoa chữ cái đầu của token type (bearer -> Bearer)
-  const formattedType = tokenType.charAt(0).toUpperCase() + tokenType.slice(1)
-  return `${formattedType} ${token}`
-}
-
-export function removeAuthToken() {
-  localStorage.removeItem("auth-token")
-  localStorage.removeItem("token-type")
-  Cookies.remove("auth-token", { path: "/" })
-}
-
+const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL || "http://localhost:8000"
 export function useAuth() {
   const router = useRouter()
 
   const login = async (username: string, password: string) => {
     try {
-      // Sử dụng API route của Next.js làm proxy
-      const response = await fetch("/api/auth/proxy", {
+      // Gọi trực tiếp đến API backend để đăng nhập
+      // Backend sẽ tự động thiết lập cookie thông qua Set-Cookie header
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ username, password }),
+        credentials: "include", // Quan trọng để nhận cookie từ response
       })
 
       // Xử lý lỗi chi tiết
@@ -101,16 +41,23 @@ export function useAuth() {
         }
       }
 
-      const data = await response.json()
-      // console.log("Login response:", data)
-
-      if (data.token) {
-        // Lưu token và token_type (nếu có)
-        setAuthToken(data.token, data.token_type || "bearer")
-        return { success: true }
+      // Lưu thông tin người dùng nếu có
+      try {
+        const userData = await response.json()
+        if (userData.user) {
+          // Lưu thông tin người dùng vào localStorage để hiển thị UI
+          if (userData.user.avatar_url) {
+            localStorage.setItem("user-avatar", userData.user.avatar_url)
+          }
+          if (userData.user.username) {
+            localStorage.setItem("username", userData.user.username)
+          }
+        }
+      } catch (error) {
+        console.error("Lỗi khi đọc thông tin người dùng:", error)
       }
 
-      throw new Error("Không nhận được token xác thực")
+      return { success: true }
     } catch (error) {
       console.error("Login error:", error)
 
@@ -130,35 +77,76 @@ export function useAuth() {
     }
   }
 
-  const logout = () => {
-    removeAuthToken()
-    router.push("/login")
+  const logout = async () => {
+    try {
+      // Gọi API logout để backend xóa cookie
+      await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Quan trọng để gửi cookie
+      })
+    } catch (error) {
+      console.error("Logout error:", error)
+    } finally {
+      // Xóa thông tin người dùng khỏi localStorage
+      localStorage.removeItem("user-avatar")
+      localStorage.removeItem("username")
+
+      // Chuyển hướng về trang đăng nhập
+      router.push("/login")
+    }
   }
 
-  const isAuthenticated = () => {
-    // Kiểm tra token có hợp lệ không
-    const token = getAuthToken()
-    if (!token) return false
-
+  const refreshToken = async (): Promise<boolean> => {
     try {
-      // Giải mã token để kiểm tra
-      const base64Url = token.split(".")[1]
-      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
-      const payload = JSON.parse(window.atob(base64))
+      // Gọi API refresh token
+      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Quan trọng để gửi refresh_token cookie
+      })
 
-      // Kiểm tra thời gian hết hạn
-      if (payload.exp && payload.exp * 1000 < Date.now()) {
-        // Token đã hết hạn
-        removeAuthToken()
+      return response.ok
+    } catch (error) {
+      console.error("Refresh token error:", error)
+      return false
+    }
+  }
+
+  const isAuthenticated = async () => {
+    try {
+      // Gọi một API bất kỳ để kiểm tra tính hợp lệ của token
+      const response = await fetch(`${API_BASE_URL}/api/datasets/get`, {
+        method: "GET",
+        credentials: "include", // Quan trọng để gửi cookie
+      })
+
+      if (!response.ok) {
+        // Nếu token hết hạn (401), thử refresh token
+        if (response.status === 401) {
+          const refreshResult = await refreshToken()
+          if (refreshResult) {
+            // Nếu refresh thành công, kiểm tra lại xác thực
+            const retryResponse = await fetch(`${API_BASE_URL}/api/datasets/get`, {
+              method: "GET",
+              credentials: "include",
+            })
+            return retryResponse.ok
+          }
+        }
         return false
       }
 
       return true
     } catch (error) {
-      console.error("Token validation error:", error)
+      console.error("Auth check error:", error)
       return false
     }
   }
 
-  return { login, logout, isAuthenticated }
+  return { login, logout, isAuthenticated, refreshToken }
 }

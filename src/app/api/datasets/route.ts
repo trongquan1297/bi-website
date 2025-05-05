@@ -5,7 +5,6 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL || "http://localhost:800
 export async function GET(request: NextRequest) {
   try {
     // Lấy token từ request headers
-    const authHeader = request.headers.get("authorization")
 
     // Tạo controller để có thể hủy request nếu cần
     const controller = new AbortController()
@@ -16,8 +15,8 @@ export async function GET(request: NextRequest) {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          ...(authHeader ? { Authorization: authHeader } : {}),
         },
+        credentials: "include",
         signal: controller.signal,
       })
 

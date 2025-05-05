@@ -3,7 +3,6 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { setAuthToken } from "@/lib/auth"
 
 export default function SSOCallbackPage() {
   const router = useRouter()
@@ -43,7 +42,6 @@ export default function SSOCallbackPage() {
 
         if (data.access_token) {
           // Lưu token và chuyển hướng đến trang chủ
-          setAuthToken(data.access_token, data.token_type || "bearer")
           router.push("/home")
         } else {
           throw new Error("Không nhận được token xác thực")

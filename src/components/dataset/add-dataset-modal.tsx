@@ -4,7 +4,6 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { X, Loader2 } from "lucide-react"
-import { getAuthHeader } from "@/lib/auth"
 
 interface Schema {
   schema_name: string
@@ -20,6 +19,8 @@ interface AddDatasetModalProps {
   onClose: () => void
   onSuccess: () => void
 }
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
 export function AddDatasetModal({ isOpen, onClose, onSuccess }: AddDatasetModalProps) {
   const [formData, setFormData] = useState({
@@ -58,12 +59,10 @@ export function AddDatasetModal({ isOpen, onClose, onSuccess }: AddDatasetModalP
     setSchemaError(null)
 
     try {
-      const authHeader = getAuthHeader()
 
-      const response = await fetch("/api/database/schemas", {
-        headers: {
-          Authorization: authHeader,
-        },
+      const response = await fetch(`${API_BASE_URL}/api/database/schemas`, {
+        method: "GET",
+        credentials: "include"
       })
 
       if (!response.ok) {
@@ -99,12 +98,10 @@ export function AddDatasetModal({ isOpen, onClose, onSuccess }: AddDatasetModalP
     setFormData((prev) => ({ ...prev, table_name: "" }))
 
     try {
-      const authHeader = getAuthHeader()
 
-      const response = await fetch(`/api/database/tables?schema_name=${encodeURIComponent(schemaName)}`, {
-        headers: {
-          Authorization: authHeader,
-        },
+      const response = await fetch(`${API_BASE_URL}/api/database/tables?schema_name=${encodeURIComponent(schemaName)}`, {
+        method: "GET",
+        credentials: "include"
       })
 
       if (!response.ok) {
@@ -145,14 +142,13 @@ export function AddDatasetModal({ isOpen, onClose, onSuccess }: AddDatasetModalP
     setError(null)
 
     try {
-      const authHeader = getAuthHeader()
 
-      const response = await fetch("/api/datasets", {
+      const response = await fetch(`${API_BASE_URL}/api/datasets`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: authHeader,
         },
+        credentials: "include",
         body: JSON.stringify(formData),
       })
 

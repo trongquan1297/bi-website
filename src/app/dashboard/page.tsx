@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
-import { getAuthHeader } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import {
   LayoutDashboard,
@@ -20,6 +19,8 @@ import {
   Clock,
 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
 interface Dashboard {
   id: number
@@ -78,11 +79,9 @@ export default function DashboardPage() {
     setError(null)
 
     try {
-      const authHeader = getAuthHeader()
-      const response = await fetch(`/api/dashboard/get`, {
-        headers: {
-          Authorization: authHeader,
-        },
+      const response = await fetch(`${API_BASE_URL}/api/dashboards/get`, {
+        method: "GET",
+        credentials: "include",
       })
 
       if (!response.ok) {
@@ -110,12 +109,10 @@ export default function DashboardPage() {
     }
 
     try {
-      const authHeader = getAuthHeader()
-      const response = await fetch(`/api/dashboard/${id}`, {
+
+      const response = await fetch(`${API_BASE_URL}/api/dashboards/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: authHeader,
-        },
+        credentials: "include"
       })
 
       if (!response.ok) {

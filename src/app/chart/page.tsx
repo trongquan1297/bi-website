@@ -8,7 +8,6 @@ import { AppHeader } from "@/components/app-header"
 import { LineChart, BarChart, PieChart, Plus, Download, RefreshCw, Search, Trash2, Edit } from "lucide-react"
 import { ChartBuilderModal } from "@/components/chart-builder"
 import { ConfirmDeleteChartModal } from "@/components/chart/confirm-delete-chart-modal"
-import { getAuthHeader } from "@/lib/auth"
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -22,6 +21,8 @@ import {
   Legend,
 } from "chart.js"
 import { Line, Bar, Pie } from "react-chartjs-2"
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
 // Register required Chart.js components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend)
@@ -76,14 +77,10 @@ export default function ChartPage() {
     setFetchAttempted(true)
 
     try {
-      // Get auth header from client
-      const authHeader = getAuthHeader()
 
-      // Use API route proxy to avoid CORS issues
-      const response = await fetch("/api/charts", {
-        headers: {
-          Authorization: authHeader,
-        },
+      const response = await fetch(`${API_BASE_URL}/api/charts/get`, {
+        method: "GET",
+        credentials: "include", // Include cookies for authentication
         // Add timeout to avoid waiting too long
         signal: AbortSignal.timeout(10000), // 10 second timeout
       })
@@ -121,13 +118,10 @@ export default function ChartPage() {
     setIsDeleting(true)
 
     try {
-      const authHeader = getAuthHeader()
 
-      const response = await fetch(`/api/charts/${chartToDelete.id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/charts/${chartToDelete.id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: authHeader,
-        },
+        credentials: "include", // Include cookies for authentication
         signal: AbortSignal.timeout(10000), // 10 second timeout
       })
 
