@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { toast } from "@/components/ui/use-toast"
 import { useDebounce } from "@/lib/use-debounce"
-
+import { cn } from "@/lib/utils"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
@@ -28,15 +28,16 @@ interface ShareDashboardModalProps {
 
 interface SharedUser {
   username: string
+  avatar_url: string
 }
 
 interface UserSearchResult {
-    username: string
-    avatar_url: string
-  }
+  username: string
+  avatar_url: string
+}
 
 export function ShareDashboardModal({ isOpen, onClose, dashboardId, dashboardName }: ShareDashboardModalProps) {
-  const [sharedUsers, setSharedUsers] = useState<string[]>([])
+  const [sharedUsers, setSharedUsers] = useState<SharedUser[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [newUsername, setNewUsername] = useState("")
   const [isAdding, setIsAdding] = useState(false)
@@ -129,7 +130,9 @@ export function ShareDashboardModal({ isOpen, onClose, dashboardId, dashboardNam
       const data = await response.json()
 
       // Filter out users that are already shared
-      const filteredResults = data.users.filter((user: UserSearchResult) => !sharedUsers.includes(user.username))
+      const filteredResults = data.users.filter(
+        (user: UserSearchResult) => !sharedUsers.some((shared) => shared.username === user.username),
+      )
 
       setSearchResults(filteredResults)
       setShowDropdown(filteredResults.length > 0)
@@ -153,7 +156,7 @@ export function ShareDashboardModal({ isOpen, onClose, dashboardId, dashboardNam
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          shared_with: username
+          shared_with: username,
         }),
       })
 
@@ -197,7 +200,7 @@ export function ShareDashboardModal({ isOpen, onClose, dashboardId, dashboardNam
       }
 
       // Update the list without refetching
-      setSharedUsers((prev) => prev.filter((user) => user !== username))
+      setSharedUsers((prev) => prev.filter((user) => user.username !== username))
       toast({
         title: "Success",
         description: `Removed ${username} from shared users.`,
@@ -213,6 +216,7 @@ export function ShareDashboardModal({ isOpen, onClose, dashboardId, dashboardNam
       setIsRemoving((prev) => ({ ...prev, [username]: false }))
     }
   }
+
   const handleSelectUser = (username: string) => {
     handleAddUser(username)
   }
@@ -228,7 +232,7 @@ export function ShareDashboardModal({ isOpen, onClose, dashboardId, dashboardNam
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center">
-            <Share2 className="h-5 w-5 mr-2 text-violet-500" />
+            <Share2 className="h-5 w-5 mr-2 text-primary" />
             Share Dashboard
           </DialogTitle>
           <DialogDescription>Share "{dashboardName}" with other users in your organization.</DialogDescription>
@@ -237,6 +241,7 @@ export function ShareDashboardModal({ isOpen, onClose, dashboardId, dashboardNam
         <div className="flex items-center space-x-2 mt-4 relative">
           <div className="grid flex-1 gap-2">
             <Input
+              ref={inputRef}
               placeholder="Search users by username"
               value={newUsername}
               onChange={(e) => setNewUsername(e.target.value)}
@@ -245,23 +250,23 @@ export function ShareDashboardModal({ isOpen, onClose, dashboardId, dashboardNam
               disabled={isAdding}
             />
 
-{showDropdown && (
+            {showDropdown && (
               <div
                 ref={dropdownRef}
-                className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 max-h-60 overflow-y-auto border border-gray-200 dark:border-gray-700"
+                className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-10 max-h-60 overflow-y-auto"
               >
                 {isSearching ? (
                   <div className="flex justify-center items-center py-4">
-                    <Loader2 className="h-5 w-5 animate-spin text-violet-500" />
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   </div>
                 ) : searchResults.length === 0 ? (
-                  <div className="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">No users found</div>
+                  <div className="text-center py-4 text-muted-foreground text-sm">No users found</div>
                 ) : (
                   <div className="py-1">
                     {searchResults.map((user) => (
                       <button
                         key={user.username}
-                        className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                        className="w-full text-left px-4 py-2 hover:bg-accent hover:text-accent-foreground flex items-center"
                         onClick={() => handleSelectUser(user.username)}
                       >
                         <Avatar className="h-6 w-6 mr-2">
@@ -272,7 +277,7 @@ export function ShareDashboardModal({ isOpen, onClose, dashboardId, dashboardNam
                           <AvatarFallback>{user.username.slice(0, 2).toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <span className="flex-1">{user.username}</span>
-                        <User className="h-4 w-4 text-gray-400" />
+                        <User className="h-4 w-4 text-muted-foreground" />
                       </button>
                     ))}
                   </div>
@@ -287,28 +292,25 @@ export function ShareDashboardModal({ isOpen, onClose, dashboardId, dashboardNam
         </div>
 
         <div className="mt-4">
-          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 flex items-center">
+          <div className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
             <Users className="h-4 w-4 mr-1" />
             Shared with
           </div>
           {isLoading ? (
             <div className="flex justify-center items-center py-4">
-              <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
           ) : sharedUsers.length === 0 ? (
-            <div className="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
+            <div className="text-center py-4 text-muted-foreground text-sm">
               This dashboard is not shared with anyone yet.
             </div>
           ) : (
             <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
-              {sharedUsers.map((username) => (
-                <div
-                  key={username}
-                  className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-2 rounded-md"
-                >
+              {sharedUsers.map(({ username, avatar_url }) => (
+                <div key={username} className="flex items-center justify-between bg-accent/50 p-2 rounded-md">
                   <div className="flex items-center">
                     <Avatar className="h-8 w-8 mr-2">
-                      <AvatarImage src={`https://avatar.vercel.sh/${username}`} alt={username} />
+                      <AvatarImage src={avatar_url || `https://avatar.vercel.sh/${username}`} alt={username} />
                       <AvatarFallback>{username.slice(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <span className="text-sm font-medium">{username}</span>
@@ -318,7 +320,10 @@ export function ShareDashboardModal({ isOpen, onClose, dashboardId, dashboardNam
                     size="sm"
                     onClick={() => handleRemoveUser(username)}
                     disabled={isRemoving[username]}
-                    className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
+                    className={cn(
+                      "h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10",
+                      isRemoving[username] && "opacity-50 cursor-not-allowed",
+                    )}
                   >
                     {isRemoving[username] ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
                     <span className="sr-only">Remove</span>
@@ -328,7 +333,6 @@ export function ShareDashboardModal({ isOpen, onClose, dashboardId, dashboardNam
             </div>
           )}
         </div>
-
         <DialogFooter className="sm:justify-end">
           <Button variant="outline" onClick={onClose}>
             Close
