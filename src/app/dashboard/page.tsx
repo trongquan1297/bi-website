@@ -14,11 +14,14 @@ import {
   Eye,
   Edit,
   Trash2,
+  Share2,
   MoreHorizontal,
   Calendar,
   Clock,
 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { ShareDashboardModal } from "@/components/dashboard/share-dashboard-modal"
+import { toast } from "@/components/ui/use-toast"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
@@ -41,6 +44,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [shareDashboardInfo, setShareDashboardInfo] = useState<{ id: number; name: string } | null>(null)
 
   useEffect(() => {
     // Check authentication when component mounts
@@ -299,6 +303,13 @@ export default function DashboardPage() {
                                   View
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
+                                  onClick={() => setShareDashboardInfo({ id: dashboard.id, name: dashboard.name })}
+                                  className="flex items-center"
+                                >
+                                  <Share2 className="h-4 w-4 mr-2" />
+                                  Share
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
                                   onClick={() => router.push(`/dashboard/builder?id=${dashboard.id}`)}
                                   className="flex items-center"
                                 >
@@ -325,6 +336,15 @@ export default function DashboardPage() {
           )}
         </main>
       </div>
+      {/* Share Dashboard Modal */}
+      {shareDashboardInfo && (
+        <ShareDashboardModal
+          isOpen={!!shareDashboardInfo}
+          onClose={() => setShareDashboardInfo(null)}
+          dashboardId={shareDashboardInfo.id}
+          dashboardName={shareDashboardInfo.name}
+        />
+      )}
     </div>
   )
 }
