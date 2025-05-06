@@ -1,5 +1,6 @@
 "use client"
 
+import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 
 interface ThemeContextType {
@@ -10,36 +11,52 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [isDarkMode, setIsDarkMode] = useState(false)
+  // Không khởi tạo giá trị ban đầu của isDarkMode ở đây
+  const [isDarkMode, setIsDarkMode] = useState<boolean | undefined>(undefined)
+  const [mounted, setMounted] = useState(false)
 
+  // Chỉ chạy một lần khi component được mount
   useEffect(() => {
-    const storedTheme = localStorage.getItem("darkMode") === "true"
-    setIsDarkMode(storedTheme)
+    // Đọc theme từ localStorage hoặc sử dụng prefers-color-scheme
+    const storedTheme = localStorage.getItem("darkMode")
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+
+    // Nếu đã lưu trong localStorage, sử dụng giá trị đó
+    // Nếu không, sử dụng prefers-color-scheme của hệ thống
+    setIsDarkMode(storedTheme !== null ? storedTheme === "true" : prefersDark)
+
+    setMounted(true)
   }, [])
 
+  // Cập nhật DOM khi isDarkMode thay đổi
   useEffect(() => {
+    if (!mounted || isDarkMode === undefined) return
+
     const root = document.documentElement
-    const body = document.body
-  
+
     if (isDarkMode) {
       root.classList.add("dark")
-      body.classList.remove("bg-gray-50", "text-gray-900")
-      body.classList.add("bg-gray-900", "text-gray-100")
     } else {
       root.classList.remove("dark")
-      body.classList.remove("bg-gray-900", "text-gray-100")
-      body.classList.add("bg-gray-50", "text-gray-900")
     }
-  }, [isDarkMode])
+
+    // Lưu theme vào localStorage
+    localStorage.setItem("darkMode", isDarkMode.toString())
+  }, [isDarkMode, mounted])
 
   const toggleDarkMode = () => {
-    const newDarkMode = !isDarkMode
-    setIsDarkMode(newDarkMode)
-    localStorage.setItem("darkMode", newDarkMode.toString())
+    setIsDarkMode((prev) => !prev)
+  }
+
+  // Đảm bảo ThemeProvider chỉ render children khi đã xác định được trạng thái theme
+  // hoặc cung cấp một giá trị mặc định cho chế độ sáng (false) khi isDarkMode còn undefined
+  const contextValue = {
+    isDarkMode: isDarkMode !== undefined ? isDarkMode : false,
+    toggleDarkMode
   }
 
   return (
-    <ThemeContext.Provider value={{ isDarkMode, toggleDarkMode }}>
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   )
