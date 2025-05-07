@@ -28,7 +28,7 @@ export async function middleware(request: NextRequest) {
     if (refreshToken) {
       // Nếu có refresh_token, thử refresh token
       try {
-        const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
           method: "POST",
           headers: {
             Cookie: `refresh_token=${refreshToken}`,

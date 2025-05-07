@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
         const refreshToken = request.cookies.get("refresh_token")?.value
 
         if (refreshToken) {
-          const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+          const refreshResponse = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

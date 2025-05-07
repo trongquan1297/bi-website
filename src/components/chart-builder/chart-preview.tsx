@@ -1,6 +1,6 @@
 "use client"
 
-import { Loader2 } from "lucide-react"
+import { Loader2 } from 'lucide-react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -18,6 +18,7 @@ import {
 } from "chart.js"
 import { Line, Bar, Pie, Doughnut, Scatter, Radar, PolarArea } from "react-chartjs-2"
 import type { ChartData, ChartType } from "./types"
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 
 // Register required Chart.js components
 ChartJS.register(
@@ -42,6 +43,8 @@ interface ChartPreviewProps {
   showLegend?: boolean
   colorScheme?: string
   chartName?: string
+  xAxisLabel?: string
+  metricsLabels?: string[]
 }
 
 export function ChartPreview({
@@ -51,8 +54,9 @@ export function ChartPreview({
   showLegend = true,
   colorScheme = "tableau10",
   chartName = "Chart Preview",
+  xAxisLabel = "Labels",
+  metricsLabels = ["Values"],
 }: ChartPreviewProps) {
-  
   // Get color scheme based on the selected option
   const getColorScheme = () => {
     const colorSchemes = {
@@ -138,6 +142,7 @@ export function ChartPreview({
       // Single-series data format
       chartData = {
         labels: previewData.labels,
+        values: previewData.values || [],
         datasets: [
           {
             label: "Value",
@@ -165,7 +170,7 @@ export function ChartPreview({
         },
       },
       scales:
-        chartType !== "pie" && chartType !== "doughnut" && chartType !== "polarArea"
+        chartType !== "pie" && chartType !== "doughnut" && chartType !== "polarArea" && chartType !== "numeric"
           ? {
               x: {
                 display: true,
@@ -202,6 +207,71 @@ export function ChartPreview({
       case "area":
         // For area charts, we need to set fill: true
         return <Line data={chartData} options={options} />
+      case "table":
+        return (
+          <div className="h-full overflow-auto">
+            <Table className="w-full">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-center">{xAxisLabel}</TableHead>
+                  {previewData.datasets ? (
+                    // Use dataset labels if available
+                    previewData.datasets.map((dataset, index) => (
+                      <TableHead key={index} className="text-center">
+                        {dataset.label || metricsLabels[index] || `Values ${index + 1}`}
+                      </TableHead>
+                    ))
+                  ) : previewData.values ? (
+                    // Otherwise use the first metrics label
+                    <TableHead className="text-center">{metricsLabels[0] || "Values"}</TableHead>
+                  ) : null}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {previewData.labels &&
+                  previewData.labels.map((label, rowIndex) => (
+                    <TableRow key={rowIndex} className="border-b border-gray-600">
+                      <TableCell className="text-center">{label}</TableCell>
+                      {previewData.datasets ? (
+                        // Display values from each dataset
+                        previewData.datasets.map((dataset, colIndex) => (
+                          <TableCell key={colIndex} className="text-center">
+                            {dataset.data && dataset.data[rowIndex] !== undefined
+                              ? dataset.data[rowIndex].toLocaleString()
+                              : "-"}
+                          </TableCell>
+                        ))
+                      ) : previewData.values ? (
+                        // Display single value column
+                        <TableCell className="text-center">
+                          {previewData.values[rowIndex] !== undefined
+                            ? previewData.values[rowIndex].toLocaleString()
+                            : "-"}
+                        </TableCell>
+                      ) : null}
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </div>
+        )
+      case "numeric":
+        // For numeric display, show the latest/total value
+        const numericValue =
+          previewData.datasets && previewData.datasets[0]?.data
+            ? previewData.datasets[0].data[previewData.datasets[0].data.length - 1]
+            : previewData.values
+              ? previewData.values[previewData.values.length - 1]
+              : 0
+
+        return (
+          <div className="flex flex-col items-center justify-center h-full">
+            <div className="text-4xl font-bold mb-2">{numericValue.toLocaleString()}</div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              {(previewData.datasets && previewData.datasets[0]?.label) || metricsLabels[0] || chartName}
+            </div>
+          </div>
+        )
       default:
         return <Bar data={chartData} options={options} />
     }

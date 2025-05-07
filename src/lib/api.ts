@@ -19,7 +19,7 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
     // Xử lý lỗi 401 (Unauthorized) - token hết hạn hoặc không hợp lệ
     if (response.status === 401) {
       // Thử refresh token
-      const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      const refreshResponse = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

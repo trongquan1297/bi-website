@@ -27,7 +27,7 @@ export interface Filter {
   filterType?: "custom" | "timeRange" | "today" | "yesterday" | "last7days" | "last30days" | "thisMonth" | "lastMonth"
 }
 
-export type ChartType = "bar" | "line" | "pie" | "area" | "doughnut" | "scatter" | "radar" | "polarArea"
+export type ChartType = "bar" | "line" | "pie" | "area" | "doughnut" | "scatter" | "radar" | "polarArea" | "table" | "numeric"
 
 export interface ChartConfig {
   limit: number

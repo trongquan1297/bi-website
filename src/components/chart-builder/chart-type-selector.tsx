@@ -9,6 +9,8 @@ import {
   ScatterChartIcon as ScatterPlot,
   Radar,
   AreaChartIcon as PolarArea,
+  LayoutGrid,
+  Hash
 } from "lucide-react"
 
 interface ChartTypeSelectorProps {
@@ -26,6 +28,8 @@ export function ChartTypeSelector({ chartType, setChartType }: ChartTypeSelector
     { type: "scatter", label: "Scatter", icon: ScatterPlot },
     { type: "radar", label: "Radar", icon: Radar },
     { type: "polarArea", label: "Polar Area", icon: PolarArea },
+    { type: "table", label: "Table", icon: LayoutGrid },
+    { type: "numeric", label: "Numeric", icon: Hash }
   ]
 
   return (

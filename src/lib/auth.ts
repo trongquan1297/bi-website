@@ -102,7 +102,7 @@ export function useAuth() {
   const refreshToken = async (): Promise<boolean> => {
     try {
       // Gọi API refresh token
-      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

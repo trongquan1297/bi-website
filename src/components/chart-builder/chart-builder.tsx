@@ -53,7 +53,19 @@ export function ChartBuilder({ onClose, onSave, editChartId = null }: ChartBuild
   const showDimensionSelector = ["bar", "line", "area"].includes(chartType)
 
   // Determine if chart type supports multiple metrics
-  const supportsMultipleMetrics = !["pie", "donut"].includes(chartType)
+  const supportsMultipleMetrics = !["pie", "donut", "numeric"].includes(chartType)
+
+  // Get column names for table headers
+  const getXAxisLabel = () => {
+    return xAxisColumns.length > 0 ? xAxisColumns[0].column_name : "Labels"
+  }
+
+  const getMetricsLabels = () => {
+    return metricsColumns.map((col) => {
+      const aggregation = col.aggregation || "SUM"
+      return `${aggregation}(${col.column_name})`
+    })
+  }
 
   // Fetch datasets when component mounts
   useEffect(() => {
@@ -155,7 +167,9 @@ export function ChartBuilder({ onClose, onSave, editChartId = null }: ChartBuild
         setChartName(chart.name || "")
 
         // Set chart type
-        setChartType((chart.chart_type || "bar") as ChartType)
+        if (chart.query && chart.query.chart_type) {
+          setChartType(chart.query.chart_type as ChartType)
+        }
 
         // Find and set the dataset
         const datasetId = chart.dataset_id
@@ -197,16 +211,21 @@ export function ChartBuilder({ onClose, onSave, editChartId = null }: ChartBuild
         }
 
         // Set preview data if available
-        if (data.data && data.data.labels) {
+        if (data.data) {
           if (data.data.datasets) {
             setPreviewData({
-              labels: data.data.labels,
+              labels: data.data.labels || [],
               datasets: data.data.datasets,
             })
-          } else if (data.data.values) {
+          } else if (data.data.labels && data.data.values) {
             setPreviewData({
               labels: data.data.labels,
               values: data.data.values,
+            })
+          } else if (data.data.labels) {
+            setPreviewData({
+              labels: data.data.labels,
+              values: [],
             })
           }
         }
@@ -223,23 +242,40 @@ export function ChartBuilder({ onClose, onSave, editChartId = null }: ChartBuild
   const setupChartConfiguration = (chart: any, columnsData: Column[]) => {
     console.log("Setting up chart configuration with:", chart, columnsData)
 
+    // Set chart name
+    setChartName(chart.name || "")
+
+    // Set chart type - directly from query.chart_type
+    if (chart.query && chart.query.chart_type) {
+      setChartType(chart.query.chart_type as ChartType)
+    }
+
     // Set x-axis columns (label fields)
     if (chart.query && chart.query.label_fields && chart.query.label_fields.length > 0) {
-      const labelField = chart.query.label_fields[0]
-      const xAxisColumn = columnsData.find((col) => col.column_name === labelField)
-      if (xAxisColumn) {
-        setXAxisColumns([xAxisColumn])
+      const labelFields = chart.query.label_fields
+      const xAxisCols: Column[] = []
+
+      labelFields.forEach((labelField: string) => {
+        const xAxisColumn = columnsData.find((col) => col.column_name === labelField)
+        if (xAxisColumn) {
+          xAxisCols.push(xAxisColumn)
+        }
+      })
+
+      if (xAxisCols.length > 0) {
+        setXAxisColumns(xAxisCols)
       }
     }
 
-    // Set metrics columns - Fix the regex pattern for multiple metrics
+    // Set metrics columns
     if (chart.query && chart.query.value_fields && Array.isArray(chart.query.value_fields)) {
       const newMetricsColumns: Column[] = []
 
       chart.query.value_fields.forEach((valueField: string) => {
         // Parse value field to extract aggregation and column name
         // Format is typically "SUM(column_name)"
-        const match = valueField.match(/(\w+)$$([^)]+)$$/)
+        const match = valueField.match(/^(\w+)\(([^)]+)\)$/)
+
         if (match && match.length === 3) {
           const aggregation = match[1]
           const columnName = match[2]
@@ -251,6 +287,15 @@ export function ChartBuilder({ onClose, onSave, editChartId = null }: ChartBuild
             newMetricsColumns.push({
               ...metricsColumn,
               aggregation: aggregation,
+            })
+          }
+        } else {
+          // Handle case where there's no aggregation
+          const metricsColumn = columnsData.find((col) => col.column_name === valueField)
+          if (metricsColumn) {
+            newMetricsColumns.push({
+              ...metricsColumn,
+              aggregation: "SUM", // Default aggregation
             })
           }
         }
@@ -295,7 +340,7 @@ export function ChartBuilder({ onClose, onSave, editChartId = null }: ChartBuild
 
     // Set chart config options
     if (chart.config) {
-      if (chart.config.limit) {
+      if (chart.config.limit !== undefined) {
         setLimit(chart.config.limit)
       }
       if (chart.config.sortOrder) {
@@ -767,7 +812,16 @@ export function ChartBuilder({ onClose, onSave, editChartId = null }: ChartBuild
 
             {/* Right panel - Chart preview and actions */}
             <div className="w-2/5 pl-4">
-              <ChartPreview data={previewData} isLoading={isPreviewLoading} chartType={chartType} />
+              <ChartPreview
+                data={previewData}
+                isLoading={isPreviewLoading}
+                chartType={chartType}
+                showLegend={showLegend}
+                colorScheme={colorScheme}
+                chartName={chartName}
+                xAxisLabel={getXAxisLabel()}
+                metricsLabels={getMetricsLabels()}
+              />
 
               <div className="mt-4 flex justify-end space-x-2">
                 <button
