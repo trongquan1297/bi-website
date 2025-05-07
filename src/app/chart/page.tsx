@@ -6,7 +6,6 @@ import { useAuth } from "@/lib/auth"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
 import { LineChart, BarChart, PieChart, Plus, Download, RefreshCw, Search, Trash2, Edit } from "lucide-react"
-import { ChartBuilderModal } from "@/components/chart-builder"
 import { ConfirmDeleteChartModal } from "@/components/chart/confirm-delete-chart-modal"
 import {
   Chart as ChartJS,
@@ -77,7 +76,6 @@ export default function ChartPage() {
     setFetchAttempted(true)
 
     try {
-
       const response = await fetch(`${API_BASE_URL}/api/charts/get`, {
         method: "GET",
         credentials: "include", // Include cookies for authentication
@@ -118,7 +116,6 @@ export default function ChartPage() {
     setIsDeleting(true)
 
     try {
-
       const response = await fetch(`${API_BASE_URL}/api/charts/${chartToDelete.id}`, {
         method: "DELETE",
         credentials: "include", // Include cookies for authentication
@@ -155,8 +152,7 @@ export default function ChartPage() {
   }
 
   const handleEditChart = (chartId: number) => {
-    setEditChartId(chartId)
-    setIsAddModalOpen(true)
+    router.push(`/chart-builder?id=${chartId}`)
   }
 
   // Get user info and charts when component mounts
@@ -203,7 +199,7 @@ export default function ChartPage() {
 
   // Open add chart modal
   const handleOpenAddModal = () => {
-    setIsAddModalOpen(true)
+    router.push("/chart-builder")
   }
 
   // Filter charts by search term and chart type
@@ -569,28 +565,6 @@ export default function ChartPage() {
           )}
         </main>
       </div>
-
-      {/* Create chart modal */}
-      <ChartBuilderModal
-        isOpen={isAddModalOpen}
-        onClose={() => {
-          setIsAddModalOpen(false)
-          setEditChartId(null)
-        }}
-        onSuccess={fetchCharts}
-        editChartId={editChartId}
-      />
-
-      {/* Edit chart modal */}
-      <ChartBuilderModal
-        isOpen={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false)
-          setChartToEdit(null)
-        }}
-        onSuccess={fetchCharts}
-        editChartId={chartToEdit}
-      />
 
       {/* Delete confirmation modal */}
       <ConfirmDeleteChartModal

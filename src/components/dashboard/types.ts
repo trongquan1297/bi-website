@@ -18,6 +18,8 @@ export interface ChartData {
     label: string
     data: number[]
   }>
+  tableData?: Array<Record<string, any>>
+  numericValue?: number | string
 }
 
 export interface Filter {
@@ -27,7 +29,17 @@ export interface Filter {
   filterType?: "custom" | "timeRange" | "today" | "yesterday" | "last7days" | "last30days" | "thisMonth" | "lastMonth"
 }
 
-export type ChartType = "bar" | "line" | "pie" | "area" | "doughnut" | "scatter" | "radar" | "polarArea"
+export type ChartType =
+  | "bar"
+  | "line"
+  | "pie"
+  | "area"
+  | "doughnut"
+  | "scatter"
+  | "radar"
+  | "polarArea"
+  | "table"
+  | "numeric"
 
 export interface ChartConfig {
   limit: number
@@ -40,15 +52,6 @@ export interface DateRangeOption {
   label: string
   value: string
   getRange: () => [Date, Date]
-}
-
-export interface ChartData {
-  labels: string[]
-  values?: number[]
-  datasets?: {
-    label: string
-    data: number[]
-  }[]
 }
 
 export interface LayoutItem {
@@ -87,4 +90,3 @@ export interface Chart {
     showLegend?: boolean
   }
 }
-

@@ -58,8 +58,8 @@ export function ChartPreview({
   metricsLabels = ["Values"],
 }: ChartPreviewProps) {
   // Get color scheme based on the selected option
-  const getColorScheme = () => {
-    const colorSchemes = {
+  const getColorScheme = (scheme: string): string[] => {
+    const schemes: Record<string, string[]> = {
       tableau10: [
         "rgba(31, 119, 180, 0.7)",
         "rgba(255, 127, 14, 0.7)",
@@ -115,14 +115,14 @@ export function ChartPreview({
       ],
     }
 
-    return colorSchemes[colorScheme] || colorSchemes.tableau10
+    return schemes[scheme] || schemes["tableau10"]
   }
 
   // Render chart based on type and data
   const renderChart = () => {
     if (!previewData) return null
 
-    const colors = getColorScheme()
+    const colors = getColorScheme(colorScheme)
     let chartData
 
     if (previewData.datasets) {

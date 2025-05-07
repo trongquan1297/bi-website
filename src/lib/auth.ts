@@ -1,5 +1,5 @@
 "use client"
-
+import { type NextRequest } from "next/server"
 import { useRouter } from "next/navigation"
 
 // Lấy cấu hình từ biến môi trường
@@ -99,7 +99,7 @@ export function useAuth() {
     }
   }
 
-  const refreshToken = async (): Promise<boolean> => {
+  const refreshToken =  async (): Promise<boolean> => {
     try {
       // Gọi API refresh token
       const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {

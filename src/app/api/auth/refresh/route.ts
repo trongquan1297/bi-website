@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Gọi API refresh token của backend
-    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

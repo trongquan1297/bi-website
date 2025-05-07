@@ -1,9 +1,11 @@
+import { type NextRequest } from "next/server"
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL || "http://localhost:8000"
 
 /**
  * Hàm tiện ích để gọi API với token xác thực
  */
-export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
+export async function fetchWithAuth(endpoint: string, options: RequestInit = {}, request: NextRequest) {
   const fetchOptions: RequestInit = {
     ...options,
     credentials: "include", // Quan trọng để gửi cookie
@@ -16,8 +18,10 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
   try {
     let response = await fetch(`${API_BASE_URL}${endpoint}`, fetchOptions)
 
+
     // Xử lý lỗi 401 (Unauthorized) - token hết hạn hoặc không hợp lệ
     if (response.status === 401) {
+      
       // Thử refresh token
       const refreshResponse = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
         method: "POST",

@@ -16,9 +16,10 @@ interface ChartBuilderProps {
   onClose: () => void
   onSave: () => void
   editChartId?: number | null
+  isFullPage?: boolean
 }
 
-export function ChartBuilder({ onClose, onSave, editChartId = null }: ChartBuilderProps) {
+export function ChartBuilder({ onClose, onSave, editChartId = null, isFullPage = false }: ChartBuilderProps) {
   // Data states
   const [datasets, setDatasets] = useState<Dataset[]>([])
   const [selectedDataset, setSelectedDataset] = useState<Dataset | null>(null)
@@ -599,35 +600,31 @@ export function ChartBuilder({ onClose, onSave, editChartId = null }: ChartBuild
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-      <div className="w-full max-w-6xl h-[90vh] rounded-lg bg-white dark:bg-gray-800 p-6 shadow-xl overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-            {isEditMode ? "Edit Chart" : "Chart Builder"}
-          </h3>
-          <button
-            onClick={onClose}
-            className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+    <div
+      className={`${isFullPage ? "" : "fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"}`}
+    >
+      <div
+        className={`bg-white dark:bg-gray-900 ${isFullPage ? "w-full" : "w-[95vw] max-w-6xl max-h-[90vh] rounded-lg shadow-lg"} overflow-hidden`}
+      >
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              {editChartId ? "Edit Chart" : "Create New Chart"}
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+            >
+              <X className="h-5 w-5" />
+              <span className="sr-only">Close</span>
+            </button>
+          </div>
+
+          {/* Content */}
+          <div
+            className={`flex flex-col md:flex-row ${isFullPage ? "h-[calc(100vh-12rem)]" : "h-[70vh]"} overflow-hidden`}
           >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {error && (
-          <div className="mb-4 rounded-md bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-300">
-            {error}
-          </div>
-        )}
-
-        {isFetchingChartData ? (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="flex flex-col items-center">
-              <Loader2 className="h-8 w-8 animate-spin text-violet-500 mb-2" />
-              <p className="text-gray-500 dark:text-gray-400">Loading chart data...</p>
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 overflow-hidden flex">
             {/* Left panel - Dataset and columns */}
             <div className="w-1/5 border-r border-gray-200 dark:border-gray-700 pr-4 overflow-y-auto">
               <DatasetSelector
@@ -853,7 +850,7 @@ export function ChartBuilder({ onClose, onSave, editChartId = null }: ChartBuild
               </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   )

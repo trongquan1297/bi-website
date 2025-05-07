@@ -100,9 +100,22 @@ export function FilterItem({ column, filter, onRemove, onFilterChange, className
   useEffect(() => {
     if (isDateColumn && filterType !== "custom") {
       const dateRange = getDateRange(filterType)
-      onFilterChange("between", dateRange, filterType)
+      // We need to stringify the dateRange to avoid infinite loops with object comparisons
+      const currentValue =
+        Array.isArray(filter.value) && filter.value.length === 2
+          ? [new Date(filter.value[0]), new Date(filter.value[1])]
+          : null
+
+      // Only update if the values are actually different
+      if (
+        !currentValue ||
+        dateRange[0].getTime() !== currentValue[0].getTime() ||
+        dateRange[1].getTime() !== currentValue[1].getTime()
+      ) {
+        onFilterChange("between", dateRange, filterType)
+      }
     }
-  }, [filterType, isDateColumn, onFilterChange])
+  }, [filterType, isDateColumn, filter.value, onFilterChange])
 
   // Handle click outside to close date picker
   useEffect(() => {
