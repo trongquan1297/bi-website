@@ -4,29 +4,19 @@ import type React from "react"
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/auth"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Send } from "lucide-react"
 import { AppHeader } from "@/components/app-header"
 
 export default function ChatPage() {
   const router = useRouter()
-  const { isAuthenticated } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
   const [message, setMessage] = useState("")
   const [messages, setMessages] = useState([{ id: 1, text: "Xin chào! Tôi có thể giúp gì cho bạn?", sender: "bot" }])
-  const [username, setUsername] = useState<string>("Người dùng")
-  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined)
 
   useEffect(() => {
-    // Kiểm tra xác thực khi component mount
-    if (!isAuthenticated()) {
-      router.push("/login")
-      return
-    }
-
     setIsLoading(false)
-  }, [router, isAuthenticated])
+  }, [router])
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,6 +49,9 @@ export default function ChatPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <AppHeader />
+
+      {/* Sidebar */}
       <AppSidebar />
 
       <div className="transition-all duration-300 md:pl-64">

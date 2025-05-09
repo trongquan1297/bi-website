@@ -35,7 +35,6 @@ export function ChartBuilder({ onClose, onSave, editChartId = null, isFullPage =
 
   // UI states
   const [previewData, setPreviewData] = useState<ChartData | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
   const [isFetchingDatasets, setIsFetchingDatasets] = useState(false)
   const [isFetchingColumns, setIsFetchingColumns] = useState(false)
   const [isFetchingChartData, setIsFetchingChartData] = useState(false)

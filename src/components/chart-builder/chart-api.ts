@@ -116,7 +116,7 @@ export async function saveChart(
     const url = editChartId ? `${API_BASE_URL}/api/charts/${editChartId}` : `${API_BASE_URL}/api/charts`
     const method = editChartId ? "PUT" : "POST"
 
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: method,
       headers: {
         "Content-Type": "application/json",

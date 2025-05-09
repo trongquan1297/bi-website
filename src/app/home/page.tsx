@@ -3,30 +3,18 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth"
-import { refreshToken } from "@/lib/token-refresh"
+import { useUser } from "@/app/contexts/user-context"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
 
 export default function HomePage() {
-  const router = useRouter()
-  const { isAuthenticated } = useAuth()
   const [username, setUsername] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const preloadData = async () => {
       try {
-        // First refresh the token to ensure we have a valid token
-        await refreshToken()
 
-        // Then check authentication
-        const authResult = await isAuthenticated()
-        if (!authResult) {
-          router.push("/login")
-          return
-        }
-
-        
         setIsLoading(false)
       } catch (error) {
         console.error("Error during preload:", error)

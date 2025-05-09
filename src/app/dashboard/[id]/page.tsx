@@ -15,9 +15,8 @@ import { formatDistanceToNow } from "date-fns"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Textarea } from "@/components/ui/textarea"
 import html2canvas from "html2canvas-pro";
-import { useUser } from "@/app/contexts/user-context"
 import { fetchWithAuth } from "@/lib/api"
-import { refreshToken } from "@/lib/token-refresh"
+import { useUser } from "@/app/contexts/user-context"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
@@ -68,7 +67,6 @@ interface Chart {
 
 export default function DashboardViewPage() {
   const router = useRouter()
-  const { isAuthenticated } = useAuth()
   const { userData } = useUser()
   const [isLoading, setIsLoading] = useState(true)
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
@@ -117,17 +115,7 @@ export default function DashboardViewPage() {
   useEffect(() => {
     const preloadData = async () => {
       try {
-        // First refresh the token to ensure we have a valid token
-        await refreshToken()
-
-        // Then check authentication
-        const authResult = await isAuthenticated()
-        if (!authResult) {
-          router.push("/login")
-          return
-        }
-
-        // If authenticated, fetch dashboards
+  
         await fetchDashboard()
         await fetchCharts()
       } catch (error) {

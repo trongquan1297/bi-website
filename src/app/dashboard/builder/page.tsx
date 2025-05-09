@@ -2,13 +2,11 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useAuth } from "@/lib/auth"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
 import { DashboardBuilder } from "@/components/dashboard/dashboard-builder"
 import { Loader2 } from "lucide-react"
 import { fetchWithAuth } from "@/lib/api"
-import { refreshToken } from "@/lib/token-refresh"
 
 interface Dashboard {
   id: number
@@ -25,7 +23,6 @@ export default function DashboardBuilderPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const dashboardId = searchParams.get("id")
-  const { isAuthenticated } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -63,16 +60,6 @@ export default function DashboardBuilderPage() {
   useEffect(() => {
     const preloadData = async () => {
       try {
-        // First refresh the token to ensure we have a valid token
-        await refreshToken()
-
-        // Then check authentication
-        const authResult = await isAuthenticated()
-        if (!authResult) {
-          router.push("/login")
-          return
-        }
-
         if (dashboardId) {
           await fetchDashboard(dashboardId)
         } else {

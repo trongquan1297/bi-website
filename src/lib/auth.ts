@@ -1,13 +1,15 @@
 "use client"
 import { useRouter } from "next/navigation"
 import { useUser } from "@/app/contexts/user-context"
-import { clearRefreshState, refreshToken as refreshTokenFunc } from "./token-refresh"
+import { clearRefreshState } from "./token-refresh"
+import { fetchWithAuth } from "./api"
 
 // Lấy cấu hình từ biến môi trường
 const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL || "http://localhost:8000"
+
 export function useAuth() {
   const router = useRouter()
-  const { fetchUserData, clearUserData } = useUser()
+  const { setUserData, clearUserData } = useUser()
 
   const login = async (username: string, password: string) => {
     try {
@@ -78,7 +80,7 @@ export function useAuth() {
       clearRefreshState()
 
       // Call the logout API
-      await fetch(`${API_BASE_URL}/api/auth/logout`, {
+      await fetchWithAuth(`${API_BASE_URL}/api/auth/logout`, {
         method: "POST",
         credentials: "include",
       })
@@ -111,53 +113,24 @@ export function useAuth() {
     }
   }
 
-  // Add back the refreshToken method
-  const refreshToken = async (): Promise<boolean> => {
+  // Simplified function to fetch user data
+  const fetchUserData = async () => {
     try {
-      console.log("Manually refreshing token from useAuth...")
-      return await refreshTokenFunc()
-    } catch (error) {
-      console.error("Refresh token error:", error)
-      return false
-    }
-  }
+      console.log("Fetching user data...")
+      const response = await fetchWithAuth(`/api/users/me`)
 
-  // Add back the isAuthenticated method
-  const isAuthenticated = async () => {
-    try {
-      // Gọi một API bất kỳ để kiểm tra tính hợp lệ của token
-      console.log("Checking authentication status...")
-      const response = await fetch(`${API_BASE_URL}/api/users/me`, {
-        method: "GET",
-        credentials: "include",
-      })
-
-      if (!response.ok) {
-        console.log("Auth check failed with status:", response.status)
-        // Nếu token hết hạn (401), thử refresh token
-        if (response.status === 401) {
-          console.log("Attempting to refresh token due to 401")
-          const refreshResult = await refreshToken()
-          if (refreshResult) {
-            console.log("Token refresh successful, retrying auth check")
-            // Nếu refresh thành công, kiểm tra lại xác thực
-            const retryResponse = await fetch(`${API_BASE_URL}/api/users/me`, {
-              method: "GET",
-              credentials: "include",
-            })
-            return retryResponse.ok
-          }
-        }
-        return false
+      if (response.ok) {
+        const userData = await response.json()
+        setUserData(userData)
+        return true
       }
 
-      console.log("Auth check successful")
-      return true
+      return false
     } catch (error) {
-      console.error("Auth check error:", error)
+      console.error("Error fetching user data:", error)
       return false
     }
   }
 
-  return { login, logout, isAuthenticated, refreshToken }
+  return { login, logout, fetchUserData }
 }

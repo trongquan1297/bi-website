@@ -4,12 +4,10 @@ import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { DndProvider } from "react-dnd"
 import { HTML5Backend } from "react-dnd-html5-backend"
-import { useAuth } from "@/lib/auth"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
 import { ChartBuilder } from "@/components/chart-builder"
 import { fetchWithAuth } from "@/lib/api"
-import { refreshToken } from "@/lib/token-refresh"
 
 interface Chart {
   id: number
@@ -26,15 +24,11 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 export default function ChartBuilderPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { isAuthenticated } = useAuth()
-  const [username, setUsername] = useState<string>("Người dùng")
-  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
   const [charts, setCharts] = useState<Chart[]>([])
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [isChartBuilderOpen, setIsChartBuilderOpen] = useState(false)
 
   // Get chart ID from URL query parameter if editing
   const chartId = searchParams.get("id") ? Number.parseInt(searchParams.get("id") as string, 10) : null
@@ -43,15 +37,6 @@ export default function ChartBuilderPage() {
   useEffect(() => {
     const preloadData = async () => {
       try {
-        // First refresh the token to ensure we have a valid token
-        await refreshToken()
-
-        // Then check authentication
-        const authResult = await isAuthenticated()
-        if (!authResult) {
-          router.push("/login")
-          return
-        }
         await fetchCharts()
       } catch (error) {
         console.error("Error during preload:", error)

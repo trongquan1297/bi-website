@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth"
+import { useUser } from "@/app/contexts/user-context"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
 import { Button } from "@/components/ui/button"
 import { fetchWithAuth } from "@/lib/api"
-import { refreshToken } from "@/lib/token-refresh"
 import {
   LayoutDashboard,
   Plus,
@@ -37,8 +37,10 @@ interface Dashboard {
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { isAuthenticated } = useAuth()
+  const { fetchUserData } = useAuth()
+  const { userData, isLoading: isUserLoading } = useUser()
   const [username, setUsername] = useState<string>("Người dùng")
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
   const [dashboards, setDashboards] = useState<Dashboard[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -46,20 +48,16 @@ export default function DashboardPage() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [shareDashboardInfo, setShareDashboardInfo] = useState<{ id: number; name: string } | null>(null)
 
+  // Load data when component mounts
   useEffect(() => {
     const preloadData = async () => {
       try {
-        // First refresh the token to ensure we have a valid token
-        await refreshToken()
-
-        // Then check authentication
-        const authResult = await isAuthenticated()
-        if (!authResult) {
-          router.push("/login")
-          return
+        // If we don't have user data yet, fetch it
+        if (!userData && !isUserLoading) {
+          await fetchUserData()
         }
 
-        // If authenticated, fetch dashboards
+        // Fetch dashboards
         await fetchDashboards()
       } catch (error) {
         console.error("Error during preload:", error)
@@ -67,7 +65,15 @@ export default function DashboardPage() {
     }
 
     preloadData()
-  }, [])
+  }, [userData, isUserLoading])
+
+  // Update username and avatar when user data changes
+  useEffect(() => {
+    if (userData) {
+      setUsername(userData.username || "Người dùng")
+      setAvatarUrl(userData.avatar_url || undefined)
+    }
+  }, [userData])
 
   const fetchDashboards = async () => {
     setIsLoading(true)

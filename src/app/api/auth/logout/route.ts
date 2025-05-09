@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     const accessToken = request.cookies.get("access_token")?.value
 
     // Gọi API logout của backend
-    const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+    const response = await fetch(`${API_BASE_URL}/api/auth/logout`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

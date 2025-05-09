@@ -2,15 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/auth"
-import { refreshToken } from "@/lib/token-refresh"
 import { useTheme } from "@/app/contexts/theme-context"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
 
 export default function SettingsPage() {
   const router = useRouter()
-  const { isAuthenticated } = useAuth()
   const { isDarkMode, toggleDarkMode } = useTheme()
   const [isLoading, setIsLoading] = useState(true)
   const [notifications, setNotifications] = useState(true)
@@ -19,17 +16,6 @@ export default function SettingsPage() {
   useEffect(() => {
     const preloadData = async () => {
       try {
-        // First refresh the token to ensure we have a valid token
-        await refreshToken()
-
-        // Then check authentication
-        const authResult = await isAuthenticated()
-        if (!authResult) {
-          router.push("/login")
-          return
-        }
-
-        
         setIsLoading(false)
       } catch (error) {
         console.error("Error during preload:", error)

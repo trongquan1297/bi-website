@@ -3,7 +3,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { fetchWithAuth } from "@/lib/api"
-import { refreshToken } from "@/lib/token-refresh"
 
 // Define the user data interface
 export interface UserData {
@@ -53,18 +52,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setFetchAttempted(false)
   }
 
-  // Preemptively refresh token when entering a protected route
-  useEffect(() => {
-    const preemptiveRefresh = async () => {
-      if (!isPublicRoute && !userData) {
-        console.log("Preemptively refreshing token on protected route")
-        await refreshToken()
-      }
-    }
-
-    preemptiveRefresh()
-  }, [pathname, isPublicRoute, userData])
-
   const fetchUserData = async () => {
     // Don't fetch on public routes
     if (isPublicRoute) return
@@ -77,19 +64,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setFetchAttempted(true)
 
     try {
-      // Ensure token is refreshed before fetching user data
-      await refreshToken()
-
+      console.log("Fetching user data from context")
       const response = await fetchWithAuth("/api/users/me")
 
       if (response.ok) {
         const data = await response.json()
         setUserData(data)
-      } else if (response.status === 401) {
-        // If unauthorized and we're not on a public route, redirect to login
-        if (!isPublicRoute && typeof window !== "undefined") {
-          router.push("/login")
-        }
+      } else if (!isPublicRoute && typeof window !== "undefined") {
+        // If we can't get user data and we're not on a public route, redirect to login
+        router.push("/login")
       }
     } catch (error) {
       console.error("Error fetching user data:", error)

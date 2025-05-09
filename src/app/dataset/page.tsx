@@ -2,14 +2,12 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/auth"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
 import { Database, Plus, Download, RefreshCw, Search, ExternalLink, Trash2, Info } from "lucide-react"
 import { AddDatasetModal } from "@/components/dataset/add-dataset-modal"
 import { ConfirmDeleteModal } from "@/components/dataset/confirm-delete-modal"
 import { fetchWithAuth } from "@/lib/api"
-import { refreshToken } from "@/lib/token-refresh"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
@@ -21,7 +19,6 @@ interface Dataset {
 
 export default function DatasetPage() {
   const router = useRouter()
-  const { isAuthenticated } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
   const [datasets, setDatasets] = useState<Dataset[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -83,16 +80,6 @@ export default function DatasetPage() {
   useEffect(() => {
     const preloadData = async () => {
       try {
-        // First refresh the token to ensure we have a valid token
-        // await refreshToken()
-
-        // Then check authentication
-        const authResult = await isAuthenticated()
-        if (!authResult) {
-          router.push("/login")
-          return
-        }
-
         if (!fetchAttempted) {
           await fetchDatasets()
         }

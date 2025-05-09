@@ -2,9 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/auth"
 import { fetchWithAuth } from "@/lib/api"
-import { refreshToken } from "@/lib/token-refresh"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
 import { LineChart, BarChart, PieChart, Plus, Download, RefreshCw, Search, Trash2, Edit } from "lucide-react"
@@ -21,7 +19,6 @@ import {
   Tooltip,
   Legend,
 } from "chart.js"
-import { Line, Bar, Pie } from "react-chartjs-2"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
@@ -48,7 +45,6 @@ interface Chart {
 
 export default function ChartPage() {
   const router = useRouter()
-  const { isAuthenticated } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
   const [charts, setCharts] = useState<Chart[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -57,14 +53,11 @@ export default function ChartPage() {
   const [fetchAttempted, setFetchAttempted] = useState(false)
   const [activeTab, setActiveTab] = useState("all")
 
-  // State for modals
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [chartToEdit, setChartToEdit] = useState<number | null>(null)
   const [chartToDelete, setChartToDelete] = useState<Chart | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [editChartId, setEditChartId] = useState<number | null>(null)
 
   // Fetch charts from API
   const fetchCharts = useCallback(async () => {
@@ -159,16 +152,6 @@ export default function ChartPage() {
   useEffect(() => {
     const preloadData = async () => {
       try {
-        // First refresh the token to ensure we have a valid token
-        await refreshToken()
-
-        // Then check authentication
-        const authResult = await isAuthenticated()
-        if (!authResult) {
-          router.push("/login")
-          return
-        }
-
         // If authenticated, fetch dashboards
         await fetchCharts()
       } catch (error) {
