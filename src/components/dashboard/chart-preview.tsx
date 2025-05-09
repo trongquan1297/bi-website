@@ -17,6 +17,7 @@ import {
 import { Line, Bar, Pie, Doughnut, Scatter, Radar, PolarArea } from "react-chartjs-2"
 import type { ChartData, ChartType } from "./types"
 import { Table } from "@/components/ui/table"
+import { fetchWithAuth } from "@/lib/api"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
@@ -47,7 +48,7 @@ export function ChartPreview({ chartId, chartType: initialChartType }: ChartPrev
       setError(null)
 
       try {
-        const response = await fetch(`${API_BASE_URL}/api/charts/${chartId}`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/api/charts/${chartId}`, {
           method: "GET",
           credentials: "include",
         })

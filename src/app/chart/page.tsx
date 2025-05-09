@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth"
+import { fetchWithAuth } from "@/lib/api"
+import { refreshToken } from "@/lib/token-refresh"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
 import { LineChart, BarChart, PieChart, Plus, Download, RefreshCw, Search, Trash2, Edit } from "lucide-react"
@@ -47,8 +49,6 @@ interface Chart {
 export default function ChartPage() {
   const router = useRouter()
   const { isAuthenticated } = useAuth()
-  const [username, setUsername] = useState<string>("Người dùng")
-  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
   const [charts, setCharts] = useState<Chart[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -76,7 +76,7 @@ export default function ChartPage() {
     setFetchAttempted(true)
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/charts/get`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/charts/get`, {
         method: "GET",
         credentials: "include", // Include cookies for authentication
         // Add timeout to avoid waiting too long
@@ -116,7 +116,7 @@ export default function ChartPage() {
     setIsDeleting(true)
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/charts/${chartToDelete.id}`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/charts/${chartToDelete.id}`, {
         method: "DELETE",
         credentials: "include", // Include cookies for authentication
         signal: AbortSignal.timeout(10000), // 10 second timeout
@@ -157,38 +157,27 @@ export default function ChartPage() {
 
   // Get user info and charts when component mounts
   useEffect(() => {
-    // Check authentication when component mounts
-    if (!isAuthenticated()) {
-      router.push("/login")
-      return
-    }
+    const preloadData = async () => {
+      try {
+        // First refresh the token to ensure we have a valid token
+        await refreshToken()
 
-    // Get user info from token
-    try {
-      const token = localStorage.getItem("auth-token")
-      if (token) {
-        // Decode token to get user info
-        const base64Url = token.split(".")[1]
-        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
-        const payload = JSON.parse(window.atob(base64))
-
-        // Get username from payload
-        setUsername(payload.sub || payload.username || "Người dùng")
-
-        // Get avatar URL from payload if available
-        if (payload.avatar_url) {
-          setAvatarUrl(payload.avatar_url)
+        // Then check authentication
+        const authResult = await isAuthenticated()
+        if (!authResult) {
+          router.push("/login")
+          return
         }
+
+        // If authenticated, fetch dashboards
+        await fetchCharts()
+      } catch (error) {
+        console.error("Error during preload:", error)
       }
-    } catch (error) {
-      console.error("Error decoding token:", error)
     }
 
-    // Only call fetchCharts once when component mounts
-    if (!fetchAttempted) {
-      fetchCharts()
-    }
-  }, [router, isAuthenticated, fetchCharts, fetchAttempted])
+    preloadData()
+  }, [])
 
   // Refresh data
   const handleRefresh = () => {
@@ -209,65 +198,6 @@ export default function ChartPage() {
     return matchesSearch && matchesType
   })
 
-  // Render chart based on type
-  const renderChart = (chart: Chart) => {
-    // Create sample data for chart
-    const labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
-    const values = Array.from({ length: 6 }, () => Math.floor(Math.random() * 100))
-
-    const chartData = {
-      labels,
-      datasets: [
-        {
-          label: `${chart.value_field} by ${chart.label_field}`,
-          data: values,
-          backgroundColor: [
-            "rgba(255, 99, 132, 0.5)",
-            "rgba(54, 162, 235, 0.5)",
-            "rgba(255, 206, 86, 0.5)",
-            "rgba(75, 192, 192, 0.5)",
-            "rgba(153, 102, 255, 0.5)",
-            "rgba(255, 159, 64, 0.5)",
-          ],
-          borderColor: [
-            "rgba(255, 99, 132, 1)",
-            "rgba(54, 162, 235, 1)",
-            "rgba(255, 206, 86, 1)",
-            "rgba(75, 192, 192, 1)",
-            "rgba(153, 102, 255, 1)",
-            "rgba(255, 159, 64, 1)",
-          ],
-          borderWidth: 1,
-        },
-      ],
-    }
-
-    const options = {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: "top" as const,
-        },
-        title: {
-          display: true,
-          text: chart.name,
-        },
-      },
-    }
-
-    switch (chart.chart_type) {
-      case "line":
-        return <Line data={chartData} options={options} />
-      case "bar":
-        return <Bar data={chartData} options={options} />
-      case "pie":
-        return <Pie data={chartData} options={options} />
-      default:
-        return <Line data={chartData} options={options} />
-    }
-  }
-
   // Show loading state
   if (isLoading && !isRefreshing && !fetchAttempted) {
     return (
@@ -282,7 +212,7 @@ export default function ChartPage() {
       <AppSidebar />
 
       <div className="transition-all duration-300 md:pl-16">
-        <AppHeader username={username} avatarUrl={avatarUrl} />
+        <AppHeader />
 
         <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-26">
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">

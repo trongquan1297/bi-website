@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth"
+import { refreshToken } from "@/lib/token-refresh"
 import { useTheme } from "@/app/contexts/theme-context"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
@@ -14,38 +15,28 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [notifications, setNotifications] = useState(true)
   const [username, setUsername] = useState<string>("Người dùng")
-  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined)
 
   useEffect(() => {
-    // Kiểm tra xác thực khi component mount
-    if (!isAuthenticated()) {
-      router.push("/login")
-      return
-    }
+    const preloadData = async () => {
+      try {
+        // First refresh the token to ensure we have a valid token
+        await refreshToken()
 
-    // Lấy thông tin người dùng từ token
-    try {
-      const token = localStorage.getItem("auth-token")
-      if (token) {
-        // Giải mã token để lấy thông tin người dùng
-        const base64Url = token.split(".")[1]
-        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
-        const payload = JSON.parse(window.atob(base64))
-
-        // Lấy username từ payload
-        setUsername(payload.sub || payload.username || "Người dùng")
-
-        // Lấy avatar URL từ payload nếu có
-        if (payload.avatar_url) {
-          setAvatarUrl(payload.avatar_url)
+        // Then check authentication
+        const authResult = await isAuthenticated()
+        if (!authResult) {
+          router.push("/login")
+          return
         }
-      }
-    } catch (error) {
-      console.error("Lỗi khi giải mã token:", error)
-    }
 
-    setIsLoading(false)
-  }, [router, isAuthenticated])
+        
+        setIsLoading(false)
+      } catch (error) {
+        console.error("Error during preload:", error)
+      }
+    }
+    preloadData()
+  }, [])
 
   if (isLoading) {
     return (
@@ -60,7 +51,7 @@ export default function SettingsPage() {
       <AppSidebar />
 
       <div className="transition-all duration-300 md:pl-16">
-        <AppHeader username={username} avatarUrl={avatarUrl} />
+        <AppHeader />
 
         <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-26">
           <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">

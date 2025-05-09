@@ -8,6 +8,8 @@ import { AppHeader } from "@/components/app-header"
 import { Database, Plus, Download, RefreshCw, Search, ExternalLink, Trash2, Info } from "lucide-react"
 import { AddDatasetModal } from "@/components/dataset/add-dataset-modal"
 import { ConfirmDeleteModal } from "@/components/dataset/confirm-delete-modal"
+import { fetchWithAuth } from "@/lib/api"
+import { refreshToken } from "@/lib/token-refresh"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
@@ -20,8 +22,6 @@ interface Dataset {
 export default function DatasetPage() {
   const router = useRouter()
   const { isAuthenticated } = useAuth()
-  const [username, setUsername] = useState<string>("Người dùng")
-  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
   const [datasets, setDatasets] = useState<Dataset[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -80,40 +80,28 @@ export default function DatasetPage() {
     }
   }, [isRefreshing])
 
-  // Lấy thông tin người dùng và datasets khi component mount
   useEffect(() => {
-    // Kiểm tra xác thực khi component mount
-    if (!isAuthenticated()) {
-      router.push("/login")
-      return
-    }
+    const preloadData = async () => {
+      try {
+        // First refresh the token to ensure we have a valid token
+        // await refreshToken()
 
-    // Lấy thông tin người dùng từ token
-    try {
-      const token = localStorage.getItem("auth-token")
-      if (token) {
-        // Giải mã token để lấy thông tin người dùng
-        const base64Url = token.split(".")[1]
-        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
-        const payload = JSON.parse(window.atob(base64))
-
-        // Lấy username từ payload
-        setUsername(payload.sub || payload.username || "Người dùng")
-
-        // Lấy avatar URL từ payload nếu có
-        if (payload.avatar_url) {
-          setAvatarUrl(payload.avatar_url)
+        // Then check authentication
+        const authResult = await isAuthenticated()
+        if (!authResult) {
+          router.push("/login")
+          return
         }
-      }
-    } catch (error) {
-      console.error("Lỗi khi giải mã token:", error)
-    }
 
-    // Chỉ gọi fetchDatasets một lần khi component mount
-    if (!fetchAttempted) {
-      fetchDatasets()
+        if (!fetchAttempted) {
+          await fetchDatasets()
+        }
+      } catch (error) {
+        console.error("Error during preload:", error)
+      }
     }
-  }, [router, isAuthenticated, fetchDatasets, fetchAttempted])
+    preloadData()
+  }, [fetchAttempted])
 
   // Hàm làm mới dữ liệu
   const handleRefresh = () => {
@@ -141,7 +129,7 @@ export default function DatasetPage() {
 
     try {
 
-      const response = await fetch(`${API_BASE_URL}/api/datasets/${datasetToDelete.id}`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/datasets/${datasetToDelete.id}`, {
         method: "DELETE",
         credentials: "include",
         signal: AbortSignal.timeout(10000), // 10 giây timeout
@@ -185,7 +173,7 @@ export default function DatasetPage() {
       <AppSidebar />
 
       <div className="transition-all duration-300 md:pl-16">
-        <AppHeader username={username} avatarUrl={avatarUrl} />
+        <AppHeader/>
 
         <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-26">
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">

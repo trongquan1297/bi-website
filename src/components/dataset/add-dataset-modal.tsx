@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { fetchWithAuth } from "@/lib/api"
 import { useState, useEffect } from "react"
 import { X, Loader2 } from "lucide-react"
 
@@ -60,7 +60,7 @@ export function AddDatasetModal({ isOpen, onClose, onSuccess }: AddDatasetModalP
 
     try {
 
-      const response = await fetch(`${API_BASE_URL}/api/database/schemas`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/database/schemas`, {
         method: "GET",
         credentials: "include"
       })
@@ -99,7 +99,7 @@ export function AddDatasetModal({ isOpen, onClose, onSuccess }: AddDatasetModalP
 
     try {
 
-      const response = await fetch(`${API_BASE_URL}/api/database/tables?schema_name=${encodeURIComponent(schemaName)}`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/database/tables?schema_name=${encodeURIComponent(schemaName)}`, {
         method: "GET",
         credentials: "include"
       })
@@ -143,7 +143,7 @@ export function AddDatasetModal({ isOpen, onClose, onSuccess }: AddDatasetModalP
 
     try {
 
-      const response = await fetch(`${API_BASE_URL}/api/datasets`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/datasets`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

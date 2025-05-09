@@ -6,6 +6,8 @@ import { useAuth } from "@/lib/auth"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
 import { Button } from "@/components/ui/button"
+import { fetchWithAuth } from "@/lib/api"
+import { refreshToken } from "@/lib/token-refresh"
 import {
   LayoutDashboard,
   Plus,
@@ -21,7 +23,6 @@ import {
 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ShareDashboardModal } from "@/components/dashboard/share-dashboard-modal"
-import { toast } from "@/components/ui/use-toast"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
@@ -38,7 +39,6 @@ export default function DashboardPage() {
   const router = useRouter()
   const { isAuthenticated } = useAuth()
   const [username, setUsername] = useState<string>("Người dùng")
-  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
   const [dashboards, setDashboards] = useState<Dashboard[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -47,34 +47,26 @@ export default function DashboardPage() {
   const [shareDashboardInfo, setShareDashboardInfo] = useState<{ id: number; name: string } | null>(null)
 
   useEffect(() => {
-    // Check authentication when component mounts
-    if (!isAuthenticated()) {
-      router.push("/login")
-      return
-    }
+    const preloadData = async () => {
+      try {
+        // First refresh the token to ensure we have a valid token
+        await refreshToken()
 
-    // Get user info from token
-    try {
-      const token = localStorage.getItem("auth-token")
-      if (token) {
-        // Decode token to get user info
-        const base64Url = token.split(".")[1]
-        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
-        const payload = JSON.parse(window.atob(base64))
-
-        // Get username from payload
-        setUsername(payload.sub || payload.username || "Người dùng")
-
-        // Get avatar URL from payload if available
-        if (payload.avatar_url) {
-          setAvatarUrl(payload.avatar_url)
+        // Then check authentication
+        const authResult = await isAuthenticated()
+        if (!authResult) {
+          router.push("/login")
+          return
         }
+
+        // If authenticated, fetch dashboards
+        await fetchDashboards()
+      } catch (error) {
+        console.error("Error during preload:", error)
       }
-    } catch (error) {
-      console.error("Error decoding token:", error)
     }
 
-    fetchDashboards()
+    preloadData()
   }, [])
 
   const fetchDashboards = async () => {
@@ -83,7 +75,7 @@ export default function DashboardPage() {
     setError(null)
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/dashboards/get`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/dashboards/get`, {
         method: "GET",
         credentials: "include",
       })
@@ -114,7 +106,7 @@ export default function DashboardPage() {
 
     try {
 
-      const response = await fetch(`${API_BASE_URL}/api/dashboards/${id}`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/dashboards/${id}`, {
         method: "DELETE",
         credentials: "include"
       })
@@ -151,7 +143,7 @@ export default function DashboardPage() {
       <AppSidebar />
 
       <div className="transition-all duration-300 md:pl-16">
-        <AppHeader username={username} avatarUrl={avatarUrl} />
+        <AppHeader/>
 
         <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-26">
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -189,6 +181,9 @@ export default function DashboardPage() {
           {error && (
             <div className="bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 px-4 py-3 rounded-md mb-6">
               <p>{error}</p>
+              <Button variant="outline" size="sm" onClick={fetchDashboards} className="mt-2">
+                Try Again
+              </Button>
             </div>
           )}
 

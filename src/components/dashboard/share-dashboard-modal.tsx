@@ -16,6 +16,8 @@ import {
 import { toast } from "@/components/ui/use-toast"
 import { useDebounce } from "@/lib/use-debounce"
 import { cn } from "@/lib/utils"
+import {fetchWithAuth} from "@/lib/api"
+
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
@@ -86,7 +88,7 @@ export function ShareDashboardModal({ isOpen, onClose, dashboardId, dashboardNam
   const fetchSharedUsers = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/api/dashboards/${dashboardId}/shared`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/dashboards/${dashboardId}/shared`, {
         method: "GET",
         credentials: "include",
       })
@@ -118,7 +120,7 @@ export function ShareDashboardModal({ isOpen, onClose, dashboardId, dashboardNam
 
     setIsSearching(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users/search?query=${encodeURIComponent(query)}`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/users/search?query=${encodeURIComponent(query)}`, {
         method: "GET",
         credentials: "include",
       })
@@ -149,7 +151,7 @@ export function ShareDashboardModal({ isOpen, onClose, dashboardId, dashboardNam
 
     setIsAdding(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/api/dashboards/${dashboardId}/share`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/dashboards/${dashboardId}/share`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -187,7 +189,7 @@ export function ShareDashboardModal({ isOpen, onClose, dashboardId, dashboardNam
   const handleRemoveUser = async (username: string) => {
     setIsRemoving((prev) => ({ ...prev, [username]: true }))
     try {
-      const response = await fetch(`${API_BASE_URL}/api/dashboards/${dashboardId}/share/${username}`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/dashboards/${dashboardId}/share/${username}`, {
         method: "DELETE",
         credentials: "include",
         headers: {

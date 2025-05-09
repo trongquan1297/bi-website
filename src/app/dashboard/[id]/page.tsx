@@ -15,6 +15,9 @@ import { formatDistanceToNow } from "date-fns"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Textarea } from "@/components/ui/textarea"
 import html2canvas from "html2canvas-pro";
+import { useUser } from "@/app/contexts/user-context"
+import { fetchWithAuth } from "@/lib/api"
+import { refreshToken } from "@/lib/token-refresh"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
@@ -36,6 +39,7 @@ interface Comment {
   resource_type: string
   resource_id: number
   username: string
+  avatar_url?: string
   content: string
   created_at: string
 }
@@ -65,8 +69,7 @@ interface Chart {
 export default function DashboardViewPage() {
   const router = useRouter()
   const { isAuthenticated } = useAuth()
-  const [username, setUsername] = useState<string>("Người dùng")
-  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined)
+  const { userData } = useUser()
   const [isLoading, setIsLoading] = useState(true)
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [charts, setCharts] = useState<Chart[]>([])
@@ -100,8 +103,6 @@ export default function DashboardViewPage() {
     }
   }
 
-
-
   // Canvas drawing state
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
@@ -114,35 +115,27 @@ export default function DashboardViewPage() {
 
   // Fetch dashboard data
   useEffect(() => {
-    // Check authentication when component mounts
-    if (!isAuthenticated()) {
-      router.push("/login")
-      return
-    }
+    const preloadData = async () => {
+      try {
+        // First refresh the token to ensure we have a valid token
+        await refreshToken()
 
-    // Get user info from token
-    try {
-      const token = localStorage.getItem("auth-token")
-      if (token) {
-        // Decode token to get user info
-        const base64Url = token.split(".")[1]
-        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
-        const payload = JSON.parse(window.atob(base64))
-
-        // Get username from payload
-        setUsername(payload.sub || payload.username || "Người dùng")
-
-        // Get avatar URL from payload if available
-        if (payload.avatar_url) {
-          setAvatarUrl(payload.avatar_url)
+        // Then check authentication
+        const authResult = await isAuthenticated()
+        if (!authResult) {
+          router.push("/login")
+          return
         }
+
+        // If authenticated, fetch dashboards
+        await fetchDashboard()
+        await fetchCharts()
+      } catch (error) {
+        console.error("Error during preload:", error)
       }
-    } catch (error) {
-      console.error("Error decoding token:", error)
     }
 
-    fetchDashboard()
-    fetchCharts()
+    preloadData()
   }, [])
 
   // Fetch dashboard data
@@ -152,7 +145,7 @@ export default function DashboardViewPage() {
     setError(null)
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/dashboards/${dashboardId}`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/dashboards/${dashboardId}`, {
         method: "GET",
         credentials: "include"
       })
@@ -183,7 +176,7 @@ export default function DashboardViewPage() {
   // Fetch charts data
   const fetchCharts = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/charts/get`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/charts/get`, {
         method: "GET",
         credentials: "include"
       })
@@ -213,7 +206,7 @@ export default function DashboardViewPage() {
     setCommentError(null)
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/comments`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/comments`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -238,7 +231,8 @@ export default function DashboardViewPage() {
           id: data.id,
           resource_type: "dashboard",
           resource_id: Number(dashboardId),
-          username: username,
+          username: userData?.username || "User",
+          avatar_url: userData?.avatar_url || undefined,
           content: newComment,
           created_at: new Date().toISOString(),
         }
@@ -257,7 +251,7 @@ export default function DashboardViewPage() {
   // Refresh comments
   const refreshComments = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/dashboards/${dashboardId}`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/dashboards/${dashboardId}`, {
         method: "GET",
         credentials: "include"
       })
@@ -471,7 +465,7 @@ export default function DashboardViewPage() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <AppSidebar />
         <div className="transition-all duration-300 md:pl-64">
-          <AppHeader username={username} avatarUrl={avatarUrl} />
+        <AppHeader />
           <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 px-4 py-3 rounded-md mb-6">
               <p>{error || "Dashboard not found"}</p>
@@ -528,7 +522,7 @@ export default function DashboardViewPage() {
       <AppSidebar />
 
       <div className="transition-all duration-300 md:pl-16">
-        <AppHeader username={username} avatarUrl={avatarUrl} />
+        <AppHeader />
 
         <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-22">
           {/* Dashboard header */}
@@ -761,11 +755,8 @@ export default function DashboardViewPage() {
                     className="flex gap-3 pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0 group"
                   >
                     <Avatar className="h-8 w-8">
-                      {comment.username === username ? (
-                        <AvatarImage
-                        src={avatarUrl || `/placeholder.svg?height=32&width=32`}
-                        alt={comment.username}
-                      />
+                    {comment.avatar_url ? (
+                          <AvatarImage src={comment.avatar_url || "/placeholder.svg"} alt={comment.username} />
                       ) : (
                         <AvatarImage src={`https://avatar.vercel.sh/${comment.username}`} alt={comment.username} />
                       )}
@@ -781,7 +772,7 @@ export default function DashboardViewPage() {
                           {formatDate(comment.created_at)}
                         </span>
 
-                        {comment.username === username && (
+                        {comment.username === userData?.username && (
                           <Button
                             variant="ghost"
                             size="icon"

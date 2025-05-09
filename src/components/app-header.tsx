@@ -4,15 +4,12 @@ import { useState, useEffect } from "react"
 import { Moon, Sun, User, Bell, Search } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { useTheme } from "@/app/contexts/theme-context"
+import { useUser } from "@/app/contexts/user-context"
 
-interface AppHeaderProps {
-  username: string
-  avatarUrl?: string
-}
-
-export function AppHeader({ username, avatarUrl }: AppHeaderProps) {
+export function AppHeader() {
   const pathname = usePathname()
   const { isDarkMode, toggleDarkMode } = useTheme()
+  const { userData, isLoading } = useUser()
   const [pageTitle, setPageTitle] = useState("Dashboard")
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
@@ -83,14 +80,18 @@ export function AppHeader({ username, avatarUrl }: AppHeaderProps) {
           {/* User Info */}
           <div className="flex items-center space-x-3">
             <div className="hidden sm:block">
-              <div className="text-sm font-medium text-gray-700 dark:text-gray-300">{username}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Người dùng</div>
+              <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {isLoading ? "Loading..." : userData?.username || "Guest"}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                {isLoading ? "" : userData?.role || "User"}
+              </div>
             </div>
             <div className="h-9 w-9 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center ring-2 ring-white dark:ring-gray-800">
-              {avatarUrl ? (
+              {!isLoading && userData?.avatar_url ? (
                 <img
-                  src={avatarUrl || "/placeholder.svg"}
-                  alt={`${username}'s avatar`}
+                  src={userData.avatar_url || "/placeholder.svg"}
+                  alt={`${userData.username}'s avatar`}
                   className="h-full w-full object-cover"
                   onError={(e) => {
                     // Fallback to default avatar if image fails to load

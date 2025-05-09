@@ -2,12 +2,15 @@ import type { Metadata } from "next"
 import LoginForm from "@/components/login/login-form"
 import { ParticlesBackground } from "@/components/login/particles-background"
 import { TiltCard } from "@/components/login/tilt-card"
-import '@/app/globals.css'
+import "@/app/globals.css"
 
 export const metadata: Metadata = {
   title: "Đăng nhập",
   description: "Đăng nhập vào tài khoản của bạn",
 }
+
+// Add noStore to prevent caching of this page
+export const dynamic = "force-dynamic"
 
 export default function LoginPage() {
   return (
@@ -26,11 +29,7 @@ export default function LoginPage() {
         <TiltCard className="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-xl">
           <div className="flex flex-col space-y-2 text-center mb-6">
             <div className="mx-auto mb-2">
-              <img
-                src="/AppotaWallet.svg"
-                alt="Appota Logo"
-                className="h-10 w-10 text-violet-600"
-              />
+              <img src="/AppotaWallet.svg" alt="Appota Logo" className="h-10 w-10 text-violet-600" />
             </div>
             <h1 className="text-2xl font-semibold tracking-tight">Đăng nhập</h1>
           </div>

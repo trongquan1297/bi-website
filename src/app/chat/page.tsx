@@ -25,27 +25,6 @@ export default function ChatPage() {
       return
     }
 
-    // Lấy thông tin người dùng từ token
-    try {
-        const token = localStorage.getItem("auth-token")
-        if (token) {
-          // Giải mã token để lấy thông tin người dùng
-          const base64Url = token.split(".")[1]
-          const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
-          const payload = JSON.parse(window.atob(base64))
-  
-          // Lấy username từ payload
-          setUsername(payload.sub || payload.username || "Người dùng")
-  
-          // Lấy avatar URL từ payload nếu có
-          if (payload.avatar_url) {
-            setAvatarUrl(payload.avatar_url)
-          }
-        }
-      } catch (error) {
-        console.error("Lỗi khi giải mã token:", error)
-      }
-
     setIsLoading(false)
   }, [router, isAuthenticated])
 

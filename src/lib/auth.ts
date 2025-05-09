@@ -1,23 +1,31 @@
 "use client"
-import { type NextRequest } from "next/server"
 import { useRouter } from "next/navigation"
+import { useUser } from "@/app/contexts/user-context"
+import { clearRefreshState, refreshToken as refreshTokenFunc } from "./token-refresh"
 
 // Lấy cấu hình từ biến môi trường
 const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL || "http://localhost:8000"
 export function useAuth() {
   const router = useRouter()
+  const { fetchUserData, clearUserData } = useUser()
 
   const login = async (username: string, password: string) => {
     try {
+      // Clear any existing user data and cookies before login attempt
+      clearUserData()
+      clearRefreshState()
+
+      // Clear problematic cookies
+      document.cookie = "attempted_refresh=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+
       // Gọi trực tiếp đến API backend để đăng nhập
-      // Backend sẽ tự động thiết lập cookie thông qua Set-Cookie header
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ username, password }),
-        credentials: "include", // Quan trọng để nhận cookie từ response
+        credentials: "include",
       })
 
       // Xử lý lỗi chi tiết
@@ -41,21 +49,8 @@ export function useAuth() {
         }
       }
 
-      // Lưu thông tin người dùng nếu có
-      try {
-        const userData = await response.json()
-        if (userData.user) {
-          // Lưu thông tin người dùng vào localStorage để hiển thị UI
-          if (userData.user.avatar_url) {
-            localStorage.setItem("user-avatar", userData.user.avatar_url)
-          }
-          if (userData.user.username) {
-            localStorage.setItem("username", userData.user.username)
-          }
-        }
-      } catch (error) {
-        console.error("Lỗi khi đọc thông tin người dùng:", error)
-      }
+      // Fetch user data after successful login
+      await fetchUserData()
 
       return { success: true }
     } catch (error) {
@@ -79,59 +74,74 @@ export function useAuth() {
 
   const logout = async () => {
     try {
-      // Gọi API logout để backend xóa cookie
-      await fetch(`${API_BASE_URL}/auth/logout`, {
+      // Clear refresh state first to prevent any refresh attempts during logout
+      clearRefreshState()
+
+      // Call the logout API
+      await fetch(`${API_BASE_URL}/api/auth/logout`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // Quan trọng để gửi cookie
+        credentials: "include",
       })
+
+      // Clear cookies on the client side as a fallback
+      if (typeof document !== "undefined") {
+        document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+        document.cookie = "refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+      }
+
+      // Clear user data
+      clearUserData()
+
+      // Force a page reload to clear all state
+      if (typeof window !== "undefined") {
+        window.location.href = "/login"
+      }
     } catch (error) {
       console.error("Logout error:", error)
-    } finally {
-      // Xóa thông tin người dùng khỏi localStorage
-      localStorage.removeItem("user-avatar")
-      localStorage.removeItem("username")
 
-      // Chuyển hướng về trang đăng nhập
-      router.push("/login")
+      // Even if the API call fails, clear cookies and redirect
+      if (typeof document !== "undefined") {
+        document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+        document.cookie = "refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+      }
+
+      if (typeof window !== "undefined") {
+        window.location.href = "/login"
+      }
     }
   }
 
-  const refreshToken =  async (): Promise<boolean> => {
+  // Add back the refreshToken method
+  const refreshToken = async (): Promise<boolean> => {
     try {
-      // Gọi API refresh token
-      const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // Quan trọng để gửi refresh_token cookie
-      })
-
-      return response.ok
+      console.log("Manually refreshing token from useAuth...")
+      return await refreshTokenFunc()
     } catch (error) {
       console.error("Refresh token error:", error)
       return false
     }
   }
 
+  // Add back the isAuthenticated method
   const isAuthenticated = async () => {
     try {
       // Gọi một API bất kỳ để kiểm tra tính hợp lệ của token
-      const response = await fetch(`${API_BASE_URL}/api/datasets/get`, {
+      console.log("Checking authentication status...")
+      const response = await fetch(`${API_BASE_URL}/api/users/me`, {
         method: "GET",
-        credentials: "include", // Quan trọng để gửi cookie
+        credentials: "include",
       })
 
       if (!response.ok) {
+        console.log("Auth check failed with status:", response.status)
         // Nếu token hết hạn (401), thử refresh token
         if (response.status === 401) {
+          console.log("Attempting to refresh token due to 401")
           const refreshResult = await refreshToken()
           if (refreshResult) {
+            console.log("Token refresh successful, retrying auth check")
             // Nếu refresh thành công, kiểm tra lại xác thực
-            const retryResponse = await fetch(`${API_BASE_URL}/api/datasets/get`, {
+            const retryResponse = await fetch(`${API_BASE_URL}/api/users/me`, {
               method: "GET",
               credentials: "include",
             })
@@ -141,6 +151,7 @@ export function useAuth() {
         return false
       }
 
+      console.log("Auth check successful")
       return true
     } catch (error) {
       console.error("Auth check error:", error)

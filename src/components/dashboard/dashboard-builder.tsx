@@ -8,6 +8,7 @@ import { ChartSelector } from "./chart-selector"
 import { TextEditor } from "./text-editor"
 import { TitleEditor } from "./title-editor"
 import { v4 as uuidv4 } from "uuid";
+import { fetchWithAuth } from "@/lib/api"
 
 // Import react-grid-layout styles
 import "react-grid-layout/css/styles.css"
@@ -38,7 +39,7 @@ export function DashboardBuilder({ initialDashboard, onSave, onCancel }: Dashboa
   useEffect(() => {
     const fetchCharts = async () => {
       try {
-        const response = await fetch(`${APP_BASE_URL}/api/charts/get`, {
+        const response = await fetchWithAuth(`${APP_BASE_URL}/api/charts/get`, {
           method: "GET",
           credentials: "include",
         })

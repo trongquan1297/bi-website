@@ -1,11 +1,12 @@
 import type { Dataset, Column, ChartData, ChartType } from "./types"
+import { fetchWithAuth } from "@/lib/api"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
 // Fetch datasets from API
 export async function fetchDatasets(): Promise<Dataset[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/datasets/get`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/datasets/get`, {
       method: "GET",
       credentials: "include"
     })
@@ -25,7 +26,7 @@ export async function fetchDatasets(): Promise<Dataset[]> {
 // Fetch columns from API
 export async function fetchColumns(tableName: string, schemaName: string): Promise<Column[]> {
   try {
-    const response = await fetch(
+    const response = await fetchWithAuth(
       `${API_BASE_URL}/api/database/columns?table_name=${encodeURIComponent(tableName)}&schema_name=${encodeURIComponent(schemaName)}`,
       {
         method: "GET",
@@ -48,7 +49,7 @@ export async function fetchColumns(tableName: string, schemaName: string): Promi
 // Update the fetchChartById function to properly handle the chart data
 export async function fetchChartById(chartId: number) {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/charts/${chartId}`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/charts/${chartId}`, {
       method: "GET",
       credentials: "include",
     })
@@ -168,7 +169,7 @@ export async function createChartPreview(
     console.log("Chart preview request:", requestBody)
 
     // Call API to get chart data
-    const response = await fetch(`${API_BASE_URL}/api/charts/query`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/charts/query`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

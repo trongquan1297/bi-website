@@ -8,6 +8,8 @@ import { useAuth } from "@/lib/auth"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
 import { ChartBuilder } from "@/components/chart-builder"
+import { fetchWithAuth } from "@/lib/api"
+import { refreshToken } from "@/lib/token-refresh"
 
 interface Chart {
   id: number
@@ -39,35 +41,24 @@ export default function ChartBuilderPage() {
 
   // Handle authentication and user info
   useEffect(() => {
-    // Check authentication when component mounts
-    if (!isAuthenticated()) {
-      router.push("/login")
-      return
-    }
+    const preloadData = async () => {
+      try {
+        // First refresh the token to ensure we have a valid token
+        await refreshToken()
 
-    // Get user info from token
-    try {
-      const token = localStorage.getItem("auth-token")
-      if (token) {
-        // Decode token to get user info
-        const base64Url = token.split(".")[1]
-        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
-        const payload = JSON.parse(window.atob(base64))
-
-        // Get username from payload
-        setUsername(payload.sub || payload.username || "Người dùng")
-
-        // Get avatar URL from payload if available
-        if (payload.avatar_url) {
-          setAvatarUrl(payload.avatar_url)
+        // Then check authentication
+        const authResult = await isAuthenticated()
+        if (!authResult) {
+          router.push("/login")
+          return
         }
+        await fetchCharts()
+      } catch (error) {
+        console.error("Error during preload:", error)
       }
-    } catch (error) {
-      console.error("Error decoding token:", error)
-    } finally {
-      setIsLoading(false)
     }
-  }, [router, isAuthenticated])
+    preloadData()
+  }, [])
 
   // Handle save success
   const handleSaveSuccess = () => {
@@ -86,7 +77,7 @@ export default function ChartBuilderPage() {
     setError(null)
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/charts`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/charts`, {
         method: "GET",
         credentials: "include",
       })
@@ -130,7 +121,7 @@ export default function ChartBuilderPage() {
       <AppSidebar />
 
       <div className="transition-all duration-300 md:pl-16">
-        <AppHeader username={username} avatarUrl={avatarUrl} />
+        <AppHeader/>
 
         <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-26">
           <DndProvider backend={HTML5Backend}>

@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { fetchWithAuth } from "@/lib/api"
 import { useState, useEffect } from "react"
 import { X, Loader2 } from "lucide-react"
 import {
@@ -20,6 +20,8 @@ import { Line, Bar, Pie } from "react-chartjs-2"
 
 // Đăng ký các components cần thiết cho Chart.js
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend)
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 interface Dataset {
   id: number
@@ -88,7 +90,7 @@ export function AddChartModal({ isOpen, onClose, onSuccess }: AddChartModalProps
 
     try {
 
-      const response = await fetch("/api/datasets", {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/datasets`, {
         method: "GET",
         credentials: "include"
       })
@@ -128,8 +130,8 @@ export function AddChartModal({ isOpen, onClose, onSuccess }: AddChartModalProps
 
     try {
 
-      const response = await fetch(
-        `/api/database/columns?table_name=${encodeURIComponent(tableName)}&schema_name=${encodeURIComponent(schemaName)}`,
+      const response = await fetchWithAuth(
+        `${API_BASE_URL}/api/database/columns?table_name=${encodeURIComponent(tableName)}&schema_name=${encodeURIComponent(schemaName)}`,
         {
           method: "GET",
           credentials: "include"

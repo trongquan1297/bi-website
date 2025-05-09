@@ -7,6 +7,8 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
 import { DashboardBuilder } from "@/components/dashboard/dashboard-builder"
 import { Loader2 } from "lucide-react"
+import { fetchWithAuth } from "@/lib/api"
+import { refreshToken } from "@/lib/token-refresh"
 
 interface Dashboard {
   id: number
@@ -24,8 +26,6 @@ export default function DashboardBuilderPage() {
   const searchParams = useSearchParams()
   const dashboardId = searchParams.get("id")
   const { isAuthenticated } = useAuth()
-  const [username, setUsername] = useState<string>("Người dùng")
-  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -60,41 +60,31 @@ export default function DashboardBuilderPage() {
     }
   }, [])
 
-  // Get user info and dashboard data when component mounts
   useEffect(() => {
-    // Check authentication when component mounts
-    if (!isAuthenticated()) {
-      router.push("/login")
-      return
-    }
+    const preloadData = async () => {
+      try {
+        // First refresh the token to ensure we have a valid token
+        await refreshToken()
 
-    // Get user info from token
-    try {
-      const token = localStorage.getItem("auth-token")
-      if (token) {
-        // Decode token to get user info
-        const base64Url = token.split(".")[1]
-        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
-        const payload = JSON.parse(window.atob(base64))
-
-        // Get username from payload
-        setUsername(payload.sub || payload.username || "Người dùng")
-
-        // Get avatar URL from payload if available
-        if (payload.avatar_url) {
-          setAvatarUrl(payload.avatar_url)
+        // Then check authentication
+        const authResult = await isAuthenticated()
+        if (!authResult) {
+          router.push("/login")
+          return
         }
+
+        if (dashboardId) {
+          await fetchDashboard(dashboardId)
+        } else {
+          setIsLoading(false)
+        }
+    
+      } catch (error) {
+        console.error("Error during preload:", error)
       }
-    } catch (error) {
-      console.error("Error decoding token:", error)
     }
 
-    // Fetch dashboard data if editing an existing dashboard
-    if (dashboardId) {
-      fetchDashboard(dashboardId)
-    } else {
-      setIsLoading(false)
-    }
+    preloadData()
   }, [])
 
   // Handle save dashboard
@@ -103,7 +93,7 @@ export default function DashboardBuilderPage() {
       const url = dashboardId ? `${API_BASE_URL}/api/dashboards/${dashboardId}` : `${API_BASE_URL}/api/dashboards`
       const method = dashboardId ? "PUT" : "POST"
 
-      const response = await fetch(url, {
+      const response = await fetchWithAuth(url, {
         method: method,
         headers: {
           "Content-Type": "application/json",
@@ -144,7 +134,7 @@ export default function DashboardBuilderPage() {
       <AppSidebar />
 
       <div className="transition-all duration-300 md:pl-16">
-        <AppHeader username={username} avatarUrl={avatarUrl} />
+        <AppHeader/>
 
         <main className="pl-4 pr-4 md:pl-8 md:pr-8 pt-22 py-8">
           {error && (
