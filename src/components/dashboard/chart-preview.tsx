@@ -26,10 +26,12 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 interface ChartPreviewProps {
   chartId?: number
   chartType?: ChartType
+  filters?: string[]
 }
 
-export function ChartPreview({ chartId, chartType: initialChartType }: ChartPreviewProps) {
+export function ChartPreview({ chartId, chartType: initialChartType, filters = [] }: ChartPreviewProps) {
   const [chartData, setChartData] = useState<ChartData | null>(null)
+  const [originalData, setOriginalData] = useState<ChartData | null>(null)
   const [chartType, setChartType] = useState<ChartType>(initialChartType || "bar")
   const [chartName, setChartName] = useState("Chart Preview")
   const [colorScheme, setColorScheme] = useState("tableau10")
@@ -37,6 +39,7 @@ export function ChartPreview({ chartId, chartType: initialChartType }: ChartPrev
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Fetch chart data
   useEffect(() => {
     if (!chartId) {
       setIsLoading(false)
@@ -60,22 +63,28 @@ export function ChartPreview({ chartId, chartType: initialChartType }: ChartPrev
         const result = await response.json()
 
         // Process the data based on chart type
+        let processedData: ChartData | null = null
+
         if (result.chart.query.chart_type === "table") {
           // For table charts, we expect the data to be in a different format
-          setChartData({
+          processedData = {
             labels: [],
             tableData: result.data.tableData || transformToTableData(result.data),
-          })
+          }
         } else if (result.chart.query.chart_type === "numeric") {
           // For numeric charts, we expect a single value
-          setChartData({
+          processedData = {
             labels: [],
             numericValue: extractNumericValue(result.data),
-          })
+          }
         } else {
           // For other chart types, use the existing format
-          setChartData(result.data)
+          processedData = result.data
         }
+
+        // Store both original and current data
+        setOriginalData(processedData)
+        setChartData(processedData)
 
         setChartType(result.chart.query.chart_type)
         setChartName(result.chart.name)
@@ -91,6 +100,67 @@ export function ChartPreview({ chartId, chartType: initialChartType }: ChartPrev
 
     fetchChart()
   }, [chartId])
+
+  // Apply filters when they change
+  useEffect(() => {
+    if (!originalData || filters.length === 0) {
+      // If no filters or no original data, reset to original data
+      if (originalData) {
+        setChartData(originalData)
+      }
+      return
+    }
+
+    // Apply filters to the data
+    if (chartType === "table") {
+      // Filter table data
+      if (originalData.tableData) {
+        const filteredTableData = originalData.tableData.filter((row) => {
+          // Check if any column value matches any of the filters
+          return Object.values(row).some((value) => filters.includes(String(value)))
+        })
+
+        setChartData({
+          ...originalData,
+          tableData: filteredTableData,
+        })
+      }
+    } else if (chartType === "numeric") {
+      // Numeric charts can't be filtered
+      setChartData(originalData)
+    } else {
+      // Filter standard chart data
+      if (originalData.labels) {
+        // Find indices of labels that match the filters
+        const filteredIndices = originalData.labels.reduce((indices, label, index) => {
+          if (filters.includes(label)) {
+            indices.push(index)
+          }
+          return indices
+        }, [] as number[])
+
+        if (filteredIndices.length === 0) {
+          // No matches, show original data
+          setChartData(originalData)
+          return
+        }
+
+        // Create filtered data
+        const filteredData: ChartData = {
+          labels: filteredIndices.map((i) => originalData.labels[i]),
+          values: originalData.values ? filteredIndices.map((i) => originalData.values![i]) : undefined,
+          datasets: originalData.datasets
+            ? originalData.datasets.map((dataset) => ({
+                ...dataset,
+                data: filteredIndices.map((i) => dataset.data[i]),
+              }))
+            : undefined,
+        }
+
+        setChartData(filteredData)
+      }
+    }
+  }, [filters, originalData, chartType])
 
   // Helper function to transform regular chart data to table format if needed
   const transformToTableData = (data: any) => {

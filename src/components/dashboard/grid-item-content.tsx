@@ -1,5 +1,9 @@
 "use client"
+
+import { useState, useEffect } from "react"
 import { ChartPreview } from "./chart-preview"
+import { Loader2 } from "lucide-react"
+import { fetchWithAuth } from "@/lib/api"
 
 interface LayoutItem {
   i: string
@@ -15,34 +19,106 @@ interface LayoutItem {
   }
 }
 
-interface GridItemContentProps {
-  item: LayoutItem
-  charts: any[]
+interface Chart {
+  id: number
+  name: string
+  chart_type: string
+  dataset_id: number
+  updated_at: string
 }
 
-export function GridItemContent({ item, charts }: GridItemContentProps) {
-  // Find chart data if this is a chart item
-  const chartData =
-    item.type === "chart" && item.content.chart_id ? charts.find((c) => c.id === item.content.chart_id) : null
+interface GridItemContentProps {
+  item: LayoutItem
+  isEditable?: boolean
+  onRemove?: (id: string) => void
+  onEdit?: (id: string, content: any) => void
+  charts?: Chart[]
+  filters?: string[]
+}
 
-  switch (item.type) {
-    case "chart":
-      return <ChartPreview chartId={item.content.chart_id} />
-    case "text":
-      return (
-        <div
-          className="h-full p-4 overflow-auto"
-          style={item.content?.style || {}}
-          dangerouslySetInnerHTML={{ __html: item.content?.text || "" }}
-        />
-      )
-    case "title":
-      return (
-        <h2 className="text-xl font-bold p-4" style={item.content?.style || {}}>
-          {item.content?.text || "Title"}
-        </h2>
-      )
-    default:
-      return <div>Unknown item type</div>
+export function GridItemContent({
+  item,
+  isEditable = false,
+  onRemove,
+  onEdit,
+  charts = [],
+  filters = [],
+}: GridItemContentProps) {
+  const [isLoading, setIsLoading] = useState(false)
+  const [chartType, setChartType] = useState<string | undefined>(undefined)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (item.type === "chart" && item.content.chart_id) {
+      const chart = charts.find((c) => c.id === item.content.chart_id)
+      if (chart) {
+        setChartType(chart.chart_type)
+      } else {
+        // If chart not found in the provided charts array, fetch it
+        fetchChartType(item.content.chart_id)
+      }
+    }
+  }, [item, charts])
+
+  const fetchChartType = async (chartId: number) => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetchWithAuth(`/api/charts/${chartId}`)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch chart: ${response.status}`)
+      }
+
+      const data = await response.json()
+      if (data && data.chart && data.chart.query && data.chart.query.chart_type) {
+        setChartType(data.chart.query.chart_type)
+      }
+    } catch (err) {
+      console.error("Error fetching chart type:", err)
+      setError("Failed to load chart type")
+    } finally {
+      setIsLoading(false)
+    }
   }
+
+  if (item.type === "chart") {
+    return (
+      <div className="h-full w-full relative">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center h-full text-red-500 text-sm">{error}</div>
+        ) : (
+          <ChartPreview chartId={item.content.chart_id} chartType={chartType as any} filters={filters} />
+        )}
+      </div>
+    )
+  }
+
+  if (item.type === "text") {
+    return (
+      <div
+        className="h-full w-full p-4 overflow-auto"
+        style={item.content.style || {}}
+        dangerouslySetInnerHTML={{ __html: item.content.text || "" }}
+      />
+    )
+  }
+
+  if (item.type === "title") {
+    return (
+      <div className="h-full w-full flex items-center p-4">
+        <h2
+          className="text-2xl font-bold"
+          style={item.content.style || {}}
+          dangerouslySetInnerHTML={{ __html: item.content.text || "" }}
+        />
+      </div>
+    )
+  }
+
+  return <div className="h-full w-full bg-gray-100 dark:bg-gray-700 rounded-lg">Unknown item type</div>
 }

@@ -1,12 +1,11 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { useAuth } from "@/lib/auth"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
-import { Loader2, Edit, Download, Pencil, Eraser, Send, RefreshCw, Undo, Redo, Trash2 } from "lucide-react"
+import { Loader2, Edit, Download, Pencil, Eraser, Send, RefreshCw, Undo, Redo, Trash2, Filter, X } from "lucide-react"
 import { GridItemContent } from "@/components/dashboard/grid-item-content"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -14,7 +13,16 @@ import { Slider } from "@/components/ui/slider"
 import { formatDistanceToNow } from "date-fns"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Textarea } from "@/components/ui/textarea"
-import html2canvas from "html2canvas-pro";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu"
+import { Badge } from "@/components/ui/badge"
+import html2canvas from "html2canvas-pro"
 import { fetchWithAuth } from "@/lib/api"
 import { useUser } from "@/app/contexts/user-context"
 
@@ -31,6 +39,7 @@ interface Dashboard {
   created_at?: string
   updated_at?: string
   comments?: Comment[]
+  charts?: any[]
 }
 
 interface Comment {
@@ -63,6 +72,16 @@ interface Chart {
   chart_type: string
   dataset_id: number
   updated_at: string
+  labels?: string[]
+}
+
+interface ChartData {
+  labels: string[]
+  values?: number[]
+  datasets?: Array<{
+    label: string
+    data: number[]
+  }>
 }
 
 export default function DashboardViewPage() {
@@ -75,6 +94,12 @@ export default function DashboardViewPage() {
   const params = useParams()
   const dashboardId = params?.id
 
+  // Filter state
+  const [availableLabels, setAvailableLabels] = useState<string[]>([])
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([])
+  const [isFilterActive, setIsFilterActive] = useState(false)
+  const [isCollectingLabels, setIsCollectingLabels] = useState(false)
+
   // Comment state
   const [comments, setComments] = useState<Comment[]>([])
   const [newComment, setNewComment] = useState("")
@@ -84,9 +109,9 @@ export default function DashboardViewPage() {
   // Handle delete comment
   const handleDeleteComment = async (commentId: number) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/comments/${commentId}`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/comments/${commentId}`, {
         method: "DELETE",
-        credentials: "include"
+        credentials: "include",
       })
 
       if (!response.ok) {
@@ -115,9 +140,7 @@ export default function DashboardViewPage() {
   useEffect(() => {
     const preloadData = async () => {
       try {
-  
         await fetchDashboard()
-        await fetchCharts()
       } catch (error) {
         console.error("Error during preload:", error)
       }
@@ -127,7 +150,6 @@ export default function DashboardViewPage() {
   }, [])
 
   // Fetch dashboard data
-  // Cập nhật hàm fetchDashboard để xử lý đúng response format
   const fetchDashboard = async () => {
     setIsLoading(true)
     setError(null)
@@ -135,7 +157,7 @@ export default function DashboardViewPage() {
     try {
       const response = await fetchWithAuth(`${API_BASE_URL}/api/dashboards/${dashboardId}`, {
         method: "GET",
-        credentials: "include"
+        credentials: "include",
       })
 
       if (!response.ok) {
@@ -150,6 +172,9 @@ export default function DashboardViewPage() {
         if (data.comments) {
           setComments(data.comments)
         }
+
+        // After dashboard is loaded, fetch charts and collect labels
+        await fetchCharts()
       } else {
         throw new Error("Invalid dashboard data format")
       }
@@ -166,7 +191,7 @@ export default function DashboardViewPage() {
     try {
       const response = await fetchWithAuth(`${API_BASE_URL}/api/charts/get`, {
         method: "GET",
-        credentials: "include"
+        credentials: "include",
       })
 
       if (!response.ok) {
@@ -176,9 +201,107 @@ export default function DashboardViewPage() {
       const data = await response.json()
       if (data && data.charts) {
         setCharts(data.charts)
+
+        // After charts are loaded, collect labels
+        collectLabelsFromCharts(data.charts)
       }
     } catch (error) {
       console.error("Error fetching charts:", error)
+    }
+  }
+
+  // Collect labels from charts
+  const collectLabelsFromCharts = useCallback(
+    async (allCharts: Chart[]) => {
+      if (!dashboard) return
+
+      setIsCollectingLabels(true)
+      console.log("Starting to collect labels...")
+
+      try {
+        const chartIds = dashboard.layout
+          .filter((item) => item.type === "chart" && item.content.chart_id)
+          .map((item) => item.content.chart_id)
+
+        console.log(`Found ${chartIds.length} charts in dashboard layout`)
+
+        const uniqueLabels = new Set<string>()
+
+        for (const chartId of chartIds) {
+          if (!chartId) continue
+
+          try {
+            console.log(`Fetching data for chart ${chartId}...`)
+            const response = await fetchWithAuth(`${API_BASE_URL}/api/charts/${chartId}`, {
+              method: "GET",
+              credentials: "include",
+            })
+
+            if (!response.ok) {
+              console.error(`Failed to fetch chart ${chartId}: ${response.status}`)
+              continue
+            }
+
+            const result = await response.json()
+            console.log(`Chart ${chartId} data:`, result)
+
+            // Extract labels from chart data
+            if (result.data && result.data.labels && Array.isArray(result.data.labels)) {
+              console.log(`Found ${result.data.labels.length} labels in chart ${chartId}`)
+              result.data.labels.forEach((label: string) => {
+                if (label) uniqueLabels.add(label)
+              })
+            } else {
+              console.log(`No labels found in chart ${chartId}`)
+            }
+          } catch (error) {
+            console.error(`Error processing chart ${chartId}:`, error)
+          }
+        }
+
+        const labelsArray = Array.from(uniqueLabels)
+        console.log(`Collected ${labelsArray.length} unique labels:`, labelsArray)
+        setAvailableLabels(labelsArray)
+      } catch (error) {
+        console.error("Error collecting labels:", error)
+      } finally {
+        setIsCollectingLabels(false)
+      }
+    },
+    [dashboard, API_BASE_URL],
+  )
+
+  // Toggle label selection
+  const toggleLabel = (label: string) => {
+    setSelectedLabels((prev) => {
+      if (prev.includes(label)) {
+        return prev.filter((l) => l !== label)
+      } else {
+        return [...prev, label]
+      }
+    })
+  }
+
+  // Apply filters
+  const applyFilters = () => {
+    if (selectedLabels.length > 0) {
+      setIsFilterActive(true)
+    } else {
+      clearFilters()
+    }
+  }
+
+  // Clear filters
+  const clearFilters = () => {
+    setSelectedLabels([])
+    setIsFilterActive(false)
+  }
+
+  // Remove a single filter
+  const removeFilter = (label: string) => {
+    setSelectedLabels((prev) => prev.filter((l) => l !== label))
+    if (selectedLabels.length <= 1) {
+      setIsFilterActive(false)
     }
   }
 
@@ -241,7 +364,7 @@ export default function DashboardViewPage() {
     try {
       const response = await fetchWithAuth(`${API_BASE_URL}/api/dashboards/${dashboardId}`, {
         method: "GET",
-        credentials: "include"
+        credentials: "include",
       })
 
       if (!response.ok) {
@@ -340,11 +463,11 @@ export default function DashboardViewPage() {
     ctx.moveTo(x, y)
 
     // Set drawing styles
-    ctx.globalCompositeOperation = isErasing ? "destination-out" : "source-over";
-    ctx.strokeStyle = drawingColor;
-    ctx.lineWidth = drawingWidth;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
+    ctx.globalCompositeOperation = isErasing ? "destination-out" : "source-over"
+    ctx.strokeStyle = drawingColor
+    ctx.lineWidth = drawingWidth
+    ctx.lineCap = "round"
+    ctx.lineJoin = "round"
   }
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -453,7 +576,7 @@ export default function DashboardViewPage() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <AppSidebar />
         <div className="transition-all duration-300 md:pl-64">
-        <AppHeader />
+          <AppHeader />
           <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 px-4 py-3 rounded-md mb-6">
               <p>{error || "Dashboard not found"}</p>
@@ -469,41 +592,42 @@ export default function DashboardViewPage() {
       </div>
     )
   }
+
   const exportDashboard = async () => {
-    const dashboardElement = document.getElementById("dashboard-capture");
-    if (!dashboardElement) return;
-  
+    const dashboardElement = document.getElementById("dashboard-capture")
+    if (!dashboardElement) return
+
     const canvas = await html2canvas(dashboardElement, {
       backgroundColor: null, // giữ trong suốt nếu cần
       useCORS: true, // nếu dashboard có ảnh từ domain khác
       scale: 2, // tăng độ nét (HD export)
-    });
+    })
 
     // Hàm định dạng ngày
     const formatDate = () => {
-      const date = new Date();
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
-      return `${day}${month}${year}`;
-    };
+      const date = new Date()
+      const day = String(date.getDate()).padStart(2, "0")
+      const month = String(date.getMonth() + 1).padStart(2, "0")
+      const year = date.getFullYear()
+      return `${day}${month}${year}`
+    }
 
-    const dashboardName = dashboard?.name || "unnamed";
+    const dashboardName = dashboard?.name || "unnamed"
     const cleanDashboardName = dashboardName
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-') // Thay thế ký tự không phải chữ/số bằng dấu gạch ngang
-      .replace(/^-+|-+$/g, '');
+      .replace(/[^a-z0-9]+/g, "-") // Thay thế ký tự không phải chữ/số bằng dấu gạch ngang
+      .replace(/^-+|-+$/g, "")
 
-    const fileName = `dashboard-${cleanDashboardName}-${formatDate()}.png`;
-  
-    const dataUrl = canvas.toDataURL("image/png");
-  
+    const fileName = `dashboard-${cleanDashboardName}-${formatDate()}.png`
+
+    const dataUrl = canvas.toDataURL("image/png")
+
     // Tải xuống file
-    const link = document.createElement("a");
-    link.href = dataUrl;
-    link.download = fileName;
-    link.click();
-  };
+    const link = document.createElement("a")
+    link.href = dataUrl
+    link.download = fileName
+    link.click()
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -518,9 +642,106 @@ export default function DashboardViewPage() {
             <div>
               <h3 className="text-1xl font-bold text-gray-900 dark:text-white mb-1">{dashboard.name}</h3>
               {dashboard.description && <p className="text-gray-500 dark:text-gray-400">{dashboard.description}</p>}
+
+              {/* Active filters display */}
+              {isFilterActive && selectedLabels.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <span className="text-sm text-gray-500 dark:text-gray-400 mr-1">Filters:</span>
+                  {selectedLabels.map((label) => (
+                    <Badge
+                      key={label}
+                      variant="outline"
+                      className="flex items-center gap-1 bg-violet-50 dark:bg-violet-900/20"
+                    >
+                      {label}
+                      <button
+                        onClick={() => removeFilter(label)}
+                        className="ml-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                  <button
+                    onClick={clearFilters}
+                    className="text-xs text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300"
+                  >
+                    Clear all
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
+              {/* Filter dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant={isFilterActive ? "default" : "outline"}
+                    className={`flex items-center gap-2 ${isFilterActive ? "bg-violet-600 text-white" : ""}`}
+                  >
+                    <Filter className="h-4 w-4" />
+                    Filter
+                    {isFilterActive && (
+                      <Badge variant="outline" className="ml-1 bg-white text-violet-600 border-white">
+                        {selectedLabels.length}
+                      </Badge>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                  <DropdownMenuLabel>Filter by Labels</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+
+                  {isCollectingLabels ? (
+                    <div className="p-4 text-center">
+                      <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2 text-violet-500" />
+                      <p className="text-sm text-gray-500">Loading labels...</p>
+                    </div>
+                  ) : availableLabels.length === 0 ? (
+                    <div className="p-4 text-center">
+                      <p className="text-sm text-gray-500">No labels available</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => collectLabelsFromCharts(charts)}
+                        className="mt-2 text-xs"
+                      >
+                        <RefreshCw className="h-3 w-3 mr-1" />
+                        Refresh Labels
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="max-h-[300px] overflow-y-auto">
+                      {availableLabels.map((label) => (
+                        <DropdownMenuCheckboxItem
+                          key={label}
+                          checked={selectedLabels.includes(label)}
+                          onCheckedChange={() => toggleLabel(label)}
+                        >
+                          {label}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </div>
+                  )}
+
+                  <DropdownMenuSeparator />
+                  <div className="flex justify-between p-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                    >
+                      Clear
+                    </Button>
+                    <Button size="sm" onClick={applyFilters} disabled={selectedLabels.length === 0}>
+                      Apply
+                    </Button>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <TooltipProvider>
                 <div
                   className={`flex items-center gap-2 p-2 rounded-lg ${
@@ -606,33 +827,32 @@ export default function DashboardViewPage() {
 
                       {/* Undo / Redo / Clear */}
                       <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={undo}
-                        disabled={historyIndex <= 0}
-                        className="transition text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 disabled:opacity-50"
-                      >
-                        <Undo className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={redo}
-                        disabled={historyIndex >= canvasHistory.length - 1}
-                        className="transition text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 disabled:opacity-50"
-                      >
-                        <Redo className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={clearCanvas}
-                        className="transition text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={undo}
+                          disabled={historyIndex <= 0}
+                          className="transition text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 disabled:opacity-50"
+                        >
+                          <Undo className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={redo}
+                          disabled={historyIndex >= canvasHistory.length - 1}
+                          className="transition text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 disabled:opacity-50"
+                        >
+                          <Redo className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={clearCanvas}
+                          className="transition text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </>
                   )}
@@ -662,7 +882,6 @@ export default function DashboardViewPage() {
           </div>
 
           <div id="dashboard-capture" className="relative w-full h-full">
-
             {/* Dashboard content */}
             <div className="relative touch-none overscroll-none">
               <div id="dashboard-container" className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 min-h-[70vh]">
@@ -690,7 +909,7 @@ export default function DashboardViewPage() {
                         }}
                       >
                         <div className="h-full">
-                          <GridItemContent item={item} charts={charts} />
+                          <GridItemContent item={item} charts={charts} filters={isFilterActive ? selectedLabels : []} />
                         </div>
                       </div>
                     )
@@ -738,63 +957,59 @@ export default function DashboardViewPage() {
                 [...comments]
                   .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
                   .map((comment) => (
-                  <div
-                    key={comment.id}
-                    className="flex gap-3 pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0 group"
-                  >
-                    <Avatar className="h-8 w-8">
-                    {comment.avatar_url ? (
+                    <div
+                      key={comment.id}
+                      className="flex gap-3 pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0 group"
+                    >
+                      <Avatar className="h-8 w-8">
+                        {comment.avatar_url ? (
                           <AvatarImage src={comment.avatar_url || "/placeholder.svg"} alt={comment.username} />
-                      ) : (
-                        <AvatarImage src={`https://avatar.vercel.sh/${comment.username}`} alt={comment.username} />
-                      )}
-                      <AvatarFallback>{comment.username.substring(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900 dark:text-white">
-                          {comment.username}
-                        </span>
-
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {formatDate(comment.created_at)}
-                        </span>
-
-                        {comment.username === userData?.username && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteComment(comment.id)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 h-auto"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="lucide lucide-trash-2"
-                            >
-                              <path d="M3 6h18" />
-                              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                              <line x1="10" x2="10" y1="11" y2="17" />
-                              <line x1="14" x2="14" y1="11" y2="17" />
-                            </svg>
-                          </Button>
+                        ) : (
+                          <AvatarImage src={`https://avatar.vercel.sh/${comment.username}`} alt={comment.username} />
                         )}
-                      </div>
+                        <AvatarFallback>{comment.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-900 dark:text-white">{comment.username}</span>
 
-                      <p className="mt-1 text-gray-700 dark:text-gray-300 break-words">
-                        {comment.content}
-                      </p>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {formatDate(comment.created_at)}
+                          </span>
+
+                          {comment.username === userData?.username && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteComment(comment.id)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 h-auto"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="lucide lucide-trash-2"
+                              >
+                                <path d="M3 6h18" />
+                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                                <line x1="10" x2="10" y1="11" y2="17" />
+                                <line x1="14" x2="14" y1="11" y2="17" />
+                              </svg>
+                            </Button>
+                          )}
+                        </div>
+
+                        <p className="mt-1 text-gray-700 dark:text-gray-300 break-words">{comment.content}</p>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ))
               )}
             </div>
 
