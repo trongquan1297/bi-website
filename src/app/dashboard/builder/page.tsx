@@ -33,7 +33,7 @@ export default function DashboardBuilderPage() {
     setError(null)
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/dashboards/${id}`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/dashboards/${id}`, {
         method: "GET",
         credentials: "include"
       })

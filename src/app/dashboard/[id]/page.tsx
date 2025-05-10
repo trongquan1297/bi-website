@@ -1,11 +1,11 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useState, useRef, useCallback } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
-import { Loader2, Edit, Download, Pencil, Eraser, Send, RefreshCw, Undo, Redo, Trash2, Filter, X } from "lucide-react"
+import { Loader2, Edit, Download, Pencil, Eraser, Send, RefreshCw, Undo, Redo, Trash2 } from "lucide-react"
 import { GridItemContent } from "@/components/dashboard/grid-item-content"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -13,15 +13,7 @@ import { Slider } from "@/components/ui/slider"
 import { formatDistanceToNow } from "date-fns"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuCheckboxItem,
-} from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
+import { FilterBuilder, type FilterCondition, type DashboardChart } from "@/components/dashboard/filter-builder"
 import html2canvas from "html2canvas-pro"
 import { fetchWithAuth } from "@/lib/api"
 import { useUser } from "@/app/contexts/user-context"
@@ -90,15 +82,13 @@ export default function DashboardViewPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [charts, setCharts] = useState<Chart[]>([])
+  const [dashboardCharts, setDashboardCharts] = useState<DashboardChart[]>([])
   const [error, setError] = useState<string | null>(null)
   const params = useParams()
   const dashboardId = params?.id
 
   // Filter state
-  const [availableLabels, setAvailableLabels] = useState<string[]>([])
-  const [selectedLabels, setSelectedLabels] = useState<string[]>([])
-  const [isFilterActive, setIsFilterActive] = useState(false)
-  const [isCollectingLabels, setIsCollectingLabels] = useState(false)
+  const [filters, setFilters] = useState<FilterCondition[]>([])
 
   // Comment state
   const [comments, setComments] = useState<Comment[]>([])
@@ -173,8 +163,13 @@ export default function DashboardViewPage() {
           setComments(data.comments)
         }
 
-        // After dashboard is loaded, fetch charts and collect labels
-        await fetchCharts()
+        // Extract chart IDs from layout
+        const chartIds = data.layout
+          .filter((item) => item.type === "chart" && item.content.chart_id)
+          .map((item) => item.content.chart_id)
+
+        // After dashboard is loaded, fetch charts
+        await fetchCharts(chartIds)
       } else {
         throw new Error("Invalid dashboard data format")
       }
@@ -187,7 +182,7 @@ export default function DashboardViewPage() {
   }
 
   // Fetch charts data
-  const fetchCharts = async () => {
+  const fetchCharts = async (chartIds: number[] = []) => {
     try {
       const response = await fetchWithAuth(`${API_BASE_URL}/api/charts/get`, {
         method: "GET",
@@ -202,107 +197,28 @@ export default function DashboardViewPage() {
       if (data && data.charts) {
         setCharts(data.charts)
 
-        // After charts are loaded, collect labels
-        collectLabelsFromCharts(data.charts)
+        // Create a list of charts that are in this dashboard
+        if (chartIds.length > 0) {
+          const dashboardChartsList = data.charts
+            .filter((chart: any) => chartIds.includes(chart.id))
+            .map((chart: any) => ({
+              id: chart.id,
+              name: chart.name,
+              chart_type: chart.chart_type || "bar",
+              dataset_id: chart.dataset_id,
+            }))
+
+          setDashboardCharts(dashboardChartsList)
+        }
       }
     } catch (error) {
       console.error("Error fetching charts:", error)
     }
   }
 
-  // Collect labels from charts
-  const collectLabelsFromCharts = useCallback(
-    async (allCharts: Chart[]) => {
-      if (!dashboard) return
-
-      setIsCollectingLabels(true)
-      console.log("Starting to collect labels...")
-
-      try {
-        const chartIds = dashboard.layout
-          .filter((item) => item.type === "chart" && item.content.chart_id)
-          .map((item) => item.content.chart_id)
-
-        console.log(`Found ${chartIds.length} charts in dashboard layout`)
-
-        const uniqueLabels = new Set<string>()
-
-        for (const chartId of chartIds) {
-          if (!chartId) continue
-
-          try {
-            console.log(`Fetching data for chart ${chartId}...`)
-            const response = await fetchWithAuth(`${API_BASE_URL}/api/charts/${chartId}`, {
-              method: "GET",
-              credentials: "include",
-            })
-
-            if (!response.ok) {
-              console.error(`Failed to fetch chart ${chartId}: ${response.status}`)
-              continue
-            }
-
-            const result = await response.json()
-            console.log(`Chart ${chartId} data:`, result)
-
-            // Extract labels from chart data
-            if (result.data && result.data.labels && Array.isArray(result.data.labels)) {
-              console.log(`Found ${result.data.labels.length} labels in chart ${chartId}`)
-              result.data.labels.forEach((label: string) => {
-                if (label) uniqueLabels.add(label)
-              })
-            } else {
-              console.log(`No labels found in chart ${chartId}`)
-            }
-          } catch (error) {
-            console.error(`Error processing chart ${chartId}:`, error)
-          }
-        }
-
-        const labelsArray = Array.from(uniqueLabels)
-        console.log(`Collected ${labelsArray.length} unique labels:`, labelsArray)
-        setAvailableLabels(labelsArray)
-      } catch (error) {
-        console.error("Error collecting labels:", error)
-      } finally {
-        setIsCollectingLabels(false)
-      }
-    },
-    [dashboard, API_BASE_URL],
-  )
-
-  // Toggle label selection
-  const toggleLabel = (label: string) => {
-    setSelectedLabels((prev) => {
-      if (prev.includes(label)) {
-        return prev.filter((l) => l !== label)
-      } else {
-        return [...prev, label]
-      }
-    })
-  }
-
-  // Apply filters
-  const applyFilters = () => {
-    if (selectedLabels.length > 0) {
-      setIsFilterActive(true)
-    } else {
-      clearFilters()
-    }
-  }
-
-  // Clear filters
-  const clearFilters = () => {
-    setSelectedLabels([])
-    setIsFilterActive(false)
-  }
-
-  // Remove a single filter
-  const removeFilter = (label: string) => {
-    setSelectedLabels((prev) => prev.filter((l) => l !== label))
-    if (selectedLabels.length <= 1) {
-      setIsFilterActive(false)
-    }
+  // Handle applying filters
+  const handleApplyFilters = (newFilters: FilterCondition[]) => {
+    setFilters(newFilters)
   }
 
   // Submit a new comment
@@ -642,105 +558,15 @@ export default function DashboardViewPage() {
             <div>
               <h3 className="text-1xl font-bold text-gray-900 dark:text-white mb-1">{dashboard.name}</h3>
               {dashboard.description && <p className="text-gray-500 dark:text-gray-400">{dashboard.description}</p>}
-
-              {/* Active filters display */}
-              {isFilterActive && selectedLabels.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <span className="text-sm text-gray-500 dark:text-gray-400 mr-1">Filters:</span>
-                  {selectedLabels.map((label) => (
-                    <Badge
-                      key={label}
-                      variant="outline"
-                      className="flex items-center gap-1 bg-violet-50 dark:bg-violet-900/20"
-                    >
-                      {label}
-                      <button
-                        onClick={() => removeFilter(label)}
-                        className="ml-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                  <button
-                    onClick={clearFilters}
-                    className="text-xs text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300"
-                  >
-                    Clear all
-                  </button>
-                </div>
-              )}
             </div>
 
             <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
-              {/* Filter dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant={isFilterActive ? "default" : "outline"}
-                    className={`flex items-center gap-2 ${isFilterActive ? "bg-violet-600 text-white" : ""}`}
-                  >
-                    <Filter className="h-4 w-4" />
-                    Filter
-                    {isFilterActive && (
-                      <Badge variant="outline" className="ml-1 bg-white text-violet-600 border-white">
-                        {selectedLabels.length}
-                      </Badge>
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56">
-                  <DropdownMenuLabel>Filter by Labels</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-
-                  {isCollectingLabels ? (
-                    <div className="p-4 text-center">
-                      <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2 text-violet-500" />
-                      <p className="text-sm text-gray-500">Loading labels...</p>
-                    </div>
-                  ) : availableLabels.length === 0 ? (
-                    <div className="p-4 text-center">
-                      <p className="text-sm text-gray-500">No labels available</p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => collectLabelsFromCharts(charts)}
-                        className="mt-2 text-xs"
-                      >
-                        <RefreshCw className="h-3 w-3 mr-1" />
-                        Refresh Labels
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="max-h-[300px] overflow-y-auto">
-                      {availableLabels.map((label) => (
-                        <DropdownMenuCheckboxItem
-                          key={label}
-                          checked={selectedLabels.includes(label)}
-                          onCheckedChange={() => toggleLabel(label)}
-                        >
-                          {label}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </div>
-                  )}
-
-                  <DropdownMenuSeparator />
-                  <div className="flex justify-between p-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearFilters}
-                      className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-                    >
-                      Clear
-                    </Button>
-                    <Button size="sm" onClick={applyFilters} disabled={selectedLabels.length === 0}>
-                      Apply
-                    </Button>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* Advanced Filter */}
+              <FilterBuilder
+                onApplyFilters={handleApplyFilters}
+                activeFilters={filters}
+                dashboardCharts={dashboardCharts}
+              />
 
               <TooltipProvider>
                 <div
@@ -909,7 +735,7 @@ export default function DashboardViewPage() {
                         }}
                       >
                         <div className="h-full">
-                          <GridItemContent item={item} charts={charts} filters={isFilterActive ? selectedLabels : []} />
+                          <GridItemContent item={item} charts={charts} filters={filters} />
                         </div>
                       </div>
                     )

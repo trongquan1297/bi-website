@@ -33,7 +33,7 @@ interface GridItemContentProps {
   onRemove?: (id: string) => void
   onEdit?: (id: string, content: any) => void
   charts?: Chart[]
-  filters?: string[]
+  filters?: string[] 
 }
 
 export function GridItemContent({

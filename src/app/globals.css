@@ -1,10 +1,9 @@
 @import "tailwindcss";
 
-
 @layer base {
   :root {
-    --background: 0 0% 100%;              /* trắng tinh khiết */
-    --foreground: 222.2 47.4% 11.2%;      /* gần đen, dễ đọc */
+    --background: 0 0% 100%; /* trắng tinh khiết */
+    --foreground: 222.2 47.4% 11.2%; /* gần đen, dễ đọc */
 
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -36,7 +35,7 @@
 
   .dark {
     --background: 222.2 47.4% 11.2%;
-    --foreground: 210 40% 98%; 
+    --foreground: 210 40% 98%;
 
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
@@ -70,7 +69,7 @@
     background-color: white;
     color: rgb(17, 24, 39); /* text-gray-900 */
   }
-  
+
   .dark body {
     background-color: rgb(3, 7, 18); /* bg-gray-950 */
     color: rgb(249, 250, 251); /* text-gray-50 */
@@ -154,4 +153,30 @@
 
 .animate-slideUp {
   animation: slideUp 0.5s ease-out forwards;
+}
+
+/* Custom styles for select items */
+.radix-select-item:hover {
+  background-color: rgba(124, 58, 237, 0.1) !important;
+}
+
+/* Improved dropdown styling */
+[data-radix-select-content] {
+  overflow: hidden;
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Improved checkbox styling */
+[data-state="checked"] {
+  background-color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+}
+
+/* Hover effects for interactive elements */
+.hover-highlight:hover {
+  background-color: rgba(124, 58, 237, 0.1);
+  transition: background-color 0.2s ease;
 }

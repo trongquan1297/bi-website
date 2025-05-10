@@ -18,6 +18,7 @@ import { Line, Bar, Pie, Doughnut, Scatter, Radar, PolarArea } from "react-chart
 import type { ChartData, ChartType } from "./types"
 import { Table } from "@/components/ui/table"
 import { fetchWithAuth } from "@/lib/api"
+import type { FilterCondition } from "./filter-builder"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL
 
@@ -26,7 +27,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 interface ChartPreviewProps {
   chartId?: number
   chartType?: ChartType
-  filters?: string[]
+  filters?: FilterCondition[]
 }
 
 export function ChartPreview({ chartId, chartType: initialChartType, filters = [] }: ChartPreviewProps) {
@@ -38,6 +39,10 @@ export function ChartPreview({ chartId, chartType: initialChartType, filters = [
   const [showLegend, setShowLegend] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [chartConfig, setChartConfig] = useState<any>(null)
+  const [datasetId, setDatasetId] = useState<string | null>(null)
+  const [chartQuery, setChartQuery] = useState<any>(null)
+  const [debugInfo, setDebugInfo] = useState<string | null>(null)
 
   // Fetch chart data
   useEffect(() => {
@@ -46,132 +51,255 @@ export function ChartPreview({ chartId, chartType: initialChartType, filters = [
       return
     }
 
-    const fetchChart = async () => {
-      setIsLoading(true)
-      setError(null)
-
-      try {
-        const response = await fetchWithAuth(`${API_BASE_URL}/api/charts/${chartId}`, {
-          method: "GET",
-          credentials: "include",
-        })
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch chart data: ${response.status}`)
-        }
-
-        const result = await response.json()
-
-        // Process the data based on chart type
-        let processedData: ChartData | null = null
-
-        if (result.chart.query.chart_type === "table") {
-          // For table charts, we expect the data to be in a different format
-          processedData = {
-            labels: [],
-            tableData: result.data.tableData || transformToTableData(result.data),
-          }
-        } else if (result.chart.query.chart_type === "numeric") {
-          // For numeric charts, we expect a single value
-          processedData = {
-            labels: [],
-            numericValue: extractNumericValue(result.data),
-          }
-        } else {
-          // For other chart types, use the existing format
-          processedData = result.data
-        }
-
-        // Store both original and current data
-        setOriginalData(processedData)
-        setChartData(processedData)
-
-        setChartType(result.chart.query.chart_type)
-        setChartName(result.chart.name)
-        setColorScheme(result.chart.config?.colorScheme || "tableau10")
-        setShowLegend(result.chart.config?.showLegend ?? true)
-      } catch (err) {
-        console.error("Error fetching chart:", err)
-        setError(err instanceof Error ? err.message : "Unknown error")
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchChart()
+    fetchChartData(chartId)
   }, [chartId])
 
   // Apply filters when they change
   useEffect(() => {
-    if (!originalData || filters.length === 0) {
-      // If no filters or no original data, reset to original data
+    if (!chartId || filters.length === 0) {
+      // If no filters, reset to original data
       if (originalData) {
         setChartData(originalData)
       }
       return
     }
 
-    // Apply filters to the data
-    if (chartType === "table") {
-      // Filter table data
-      if (originalData.tableData) {
-        const filteredTableData = originalData.tableData.filter((row) => {
-          // Check if any column value matches any of the filters
-          return Object.values(row).some((value) => filters.includes(String(value)))
-        })
+    // Check if any filters apply to this chart
+    const applicableFilters = filters.filter((filter) => filter.applyToCharts.includes(Number(chartId)))
 
-        setChartData({
-          ...originalData,
-          tableData: filteredTableData,
-        })
+    if (applicableFilters.length === 0) {
+      // No filters apply to this chart
+      if (originalData) {
+        setChartData(originalData)
       }
-    } else if (chartType === "numeric") {
-      // Numeric charts can't be filtered
-      setChartData(originalData)
-    } else {
-      // Filter standard chart data
-      if (originalData.labels) {
-        // Find indices of labels that match the filters
-        const filteredIndices = originalData.labels.reduce((indices, label, index) => {
-          if (filters.includes(label)) {
-            indices.push(index)
-          }
-          return indices
-        }, [] as number[])
-
-        if (filteredIndices.length === 0) {
-          // No matches, show original data
-          setChartData(originalData)
-          return
-        }
-
-        // Create filtered data
-        const filteredData: ChartData = {
-          labels: filteredIndices.map((i) => originalData.labels[i]),
-          values: originalData.values ? filteredIndices.map((i) => originalData.values![i]) : undefined,
-          datasets: originalData.datasets
-            ? originalData.datasets.map((dataset) => ({
-                ...dataset,
-                data: filteredIndices.map((i) => dataset.data[i]),
-              }))
-            : undefined,
-        }
-
-        setChartData(filteredData)
-      }
+      return
     }
-  }, [filters, originalData, chartType])
+
+    // Apply filters by re-querying the API
+    applyFiltersToChart(chartId, applicableFilters)
+  }, [filters, chartId, originalData, chartQuery])
+
+  const fetchChartData = async (chartId: number) => {
+    setIsLoading(true)
+    setError(null)
+    setDebugInfo(null)
+
+    try {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/charts/${chartId}`, {
+        method: "GET",
+        credentials: "include",
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch chart data: ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log("Original chart data:", result)
+
+      // Store chart configuration and dataset ID
+      setChartConfig(result.chart.config || {})
+      setDatasetId(result.chart.dataset_id?.toString() || null)
+      setChartQuery(result.chart.query || {})
+
+      // Process the data based on chart type
+      let processedData: ChartData | null = null
+
+      if (result.chart.query.chart_type === "table") {
+        // For table charts, we expect the data to be in a different format
+        const tableData = result.data.tableData || transformToTableData(result.data)
+        console.log("Table data processed:", tableData)
+
+        processedData = {
+          labels: [],
+          tableData: tableData,
+        }
+      } else if (result.chart.query.chart_type === "numeric") {
+        // For numeric charts, we expect a single value
+        processedData = {
+          labels: [],
+          numericValue: extractNumericValue(result.data),
+        }
+      } else {
+        // For other chart types, use the existing format
+        processedData = result.data
+      }
+
+      // Store both original and current data
+      setOriginalData(processedData)
+      setChartData(processedData)
+
+      setChartType(result.chart.query.chart_type)
+      setChartName(result.chart.name)
+      setColorScheme(result.chart.config?.colorScheme || "tableau10")
+      setShowLegend(result.chart.config?.showLegend ?? true)
+    } catch (err) {
+      console.error("Error fetching chart:", err)
+      setError(err instanceof Error ? err.message : "Unknown error")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const applyFiltersToChart = async (chartId: number, filters: FilterCondition[]) => {
+    setIsLoading(true)
+    setError(null)
+    setDebugInfo(null)
+
+    try {
+      if (!chartQuery) {
+        throw new Error("Chart query configuration not available")
+      }
+
+      // Prepare the filter parameters for the API
+      const filterParams = filters.reduce(
+        (acc, filter) => {
+          const value =
+            filter.operator === "between" && typeof filter.value === "string" ? filter.value.split("|") : filter.value
+
+          acc[filter.column] = {
+            operator: filter.operator,
+            value,
+            filterType: "custom",
+          }
+
+          return acc
+        },
+        {} as Record<string, { operator: string; value: any; filterType: string }>,
+      )
+
+      // Prepare the request body with all required fields
+      const requestBody = {
+        filters: filterParams,
+        dataset_id: datasetId,
+        chart_type: chartType,
+        label_fields: chartQuery.label_fields || [],
+        value_fields: chartQuery.value_fields || [],
+        config: chartConfig,
+      }
+
+      console.log("Sending filter request:", requestBody)
+
+      // Call the API with the filters
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/charts/query`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(requestBody),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to apply filters: ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log("Filtered chart data response:", result)
+
+      // Set debug info for troubleshooting
+      setDebugInfo(JSON.stringify(result, null, 2))
+
+      // Process the filtered data
+      let filteredData: ChartData | null = null
+
+      if (chartType === "table") {
+        // For table charts, handle different possible response structures
+        let tableData: any[] = []
+
+        // Try different possible locations for table data
+        if (result.data?.tableData && Array.isArray(result.data.tableData)) {
+          tableData = result.data.tableData
+        } else if (result.tableData && Array.isArray(result.tableData)) {
+          tableData = result.tableData
+        } else if (Array.isArray(result.data)) {
+          tableData = result.data
+        } else if (result.rows && Array.isArray(result.rows)) {
+          // Some APIs return data as 'rows'
+          tableData = result.rows
+        } else if (result.data?.rows && Array.isArray(result.data.rows)) {
+          tableData = result.data.rows
+        } else if (result.results && Array.isArray(result.results)) {
+          // Some APIs return data as 'results'
+          tableData = result.results
+        } else if (result.data?.results && Array.isArray(result.data.results)) {
+          tableData = result.data.results
+        }
+
+        // If we still don't have table data, try to construct it from other fields
+        if (tableData.length === 0) {
+          tableData = transformToTableData(result.data || result)
+        }
+
+        console.log("Processed table data:", tableData)
+
+        // Ensure we have at least an empty array if all else fails
+        filteredData = {
+          labels: [],
+          tableData: tableData.length > 0 ? tableData : [],
+        }
+      } else if (chartType === "numeric") {
+        // For numeric charts
+        const numericValue =
+          result.data?.numericValue !== undefined
+            ? result.data.numericValue
+            : typeof result.data === "number"
+              ? result.data
+              : result.value !== undefined
+                ? result.value
+                : 0
+
+        filteredData = {
+          labels: [],
+          numericValue: numericValue,
+        }
+      } else {
+        // For standard charts (bar, line, pie, etc.)
+        // Check if the result has the expected structure
+        if (result.data) {
+          filteredData = result.data
+        } else if (result.labels) {
+          // If the result is directly the chart data
+          filteredData = result
+        } else {
+          // Try to construct chart data from the result
+          filteredData = {
+            labels: result.labels || [],
+            datasets: result.datasets || [],
+            values: result.values || [],
+          }
+        }
+      }
+
+      console.log("Processed filtered data:", filteredData)
+      setChartData(filteredData)
+    } catch (err) {
+      console.error("Error applying filters:", err)
+      setError(err instanceof Error ? err.message : "Error applying filters")
+
+      // On error, revert to original data
+      if (originalData) {
+        setChartData(originalData)
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   // Helper function to transform regular chart data to table format if needed
   const transformToTableData = (data: any) => {
-    if (data.tableData) return data.tableData
+    console.log("Transforming to table data:", data)
+
+    if (!data) return []
+    if (data.tableData && Array.isArray(data.tableData)) return data.tableData
+    if (Array.isArray(data)) return data
 
     // If the API doesn't provide tableData directly, try to construct it
     const tableData = []
 
     if (data.labels && (data.values || data.datasets)) {
       // Convert from chart format to table format
-      if (data.values) {
+      if (data.values && Array.isArray(data.values)) {
         // Simple case: one series of values
         for (let i = 0; i < data.labels.length; i++) {
           tableData.push({
@@ -179,13 +307,15 @@ export function ChartPreview({ chartId, chartType: initialChartType, filters = [
             value: data.values[i],
           })
         }
-      } else if (data.datasets) {
+      } else if (data.datasets && Array.isArray(data.datasets)) {
         // Multiple series case
         for (let i = 0; i < data.labels.length; i++) {
           const row: Record<string, any> = { label: data.labels[i] }
 
           data.datasets.forEach((dataset: any, j: number) => {
-            row[dataset.label || `Series ${j + 1}`] = dataset.data[i]
+            if (dataset && dataset.data && Array.isArray(dataset.data)) {
+              row[dataset.label || `Series ${j + 1}`] = dataset.data[i]
+            }
           })
 
           tableData.push(row)
@@ -193,17 +323,27 @@ export function ChartPreview({ chartId, chartType: initialChartType, filters = [
       }
     }
 
+    // If we have a records or rows property, use that
+    if (data.records && Array.isArray(data.records)) {
+      return data.records
+    }
+
+    if (data.rows && Array.isArray(data.rows)) {
+      return data.rows
+    }
+
     return tableData
   }
 
   // Helper function to extract a numeric value from chart data
   const extractNumericValue = (data: any) => {
-    if (data.numericValue !== undefined) return data.numericValue
+    if (data?.numericValue !== undefined) return data.numericValue
+    if (typeof data === "number") return data
 
     // Try to extract a single numeric value from the data
-    if (data.values && data.values.length > 0) {
+    if (data?.values && data.values.length > 0) {
       return data.values[0]
-    } else if (data.datasets && data.datasets.length > 0 && data.datasets[0].data.length > 0) {
+    } else if (data?.datasets && data.datasets.length > 0 && data.datasets[0].data.length > 0) {
       return data.datasets[0].data[0]
     }
 
@@ -273,7 +413,17 @@ export function ChartPreview({ chartId, chartType: initialChartType, filters = [
   // Render a table chart
   const renderTableChart = () => {
     if (!chartData || !chartData.tableData || chartData.tableData.length === 0) {
-      return <div className="text-gray-400 text-sm text-center p-4">No data available</div>
+      return (
+        <div className="flex flex-col gap-2 text-gray-400 text-sm text-center p-4">
+          <div>No data available</div>
+          {debugInfo && (
+            <details className="text-left text-xs bg-gray-50 p-2 rounded border">
+              <summary className="cursor-pointer font-medium">Debug Info</summary>
+              <pre className="mt-2 overflow-auto max-h-[300px]">{debugInfo}</pre>
+            </details>
+          )}
+        </div>
+      )
     }
 
     // Get all unique column names from the data
@@ -425,7 +575,17 @@ export function ChartPreview({ chartId, chartType: initialChartType, filters = [
   }
 
   if (error) {
-    return <div className="text-red-500 text-sm text-center p-4">{error}</div>
+    return (
+      <div className="text-red-500 text-sm text-center p-4">
+        {error}
+        {debugInfo && (
+          <details className="mt-2 text-left text-xs bg-gray-50 p-2 rounded border">
+            <summary className="cursor-pointer font-medium">Debug Info</summary>
+            <pre className="mt-2 overflow-auto max-h-[300px]">{debugInfo}</pre>
+          </details>
+        )}
+      </div>
+    )
   }
 
   return <div className="h-full">{renderChart()}</div>
