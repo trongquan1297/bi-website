@@ -52,20 +52,13 @@ export default function DashboardPage() {
   useEffect(() => {
     const preloadData = async () => {
       try {
-        // If we don't have user data yet, fetch it
-        if (!userData && !isUserLoading) {
-          await fetchUserData()
-        }
-
-        // Fetch dashboards
         await fetchDashboards()
       } catch (error) {
         console.error("Error during preload:", error)
       }
     }
-
     preloadData()
-  }, [userData, isUserLoading])
+  }, [])
 
   // Update username and avatar when user data changes
   useEffect(() => {

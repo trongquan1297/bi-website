@@ -44,14 +44,20 @@ export function ChartPreview({ chartId, chartType: initialChartType, filters = [
   const [chartQuery, setChartQuery] = useState<any>(null)
   const [debugInfo, setDebugInfo] = useState<string | null>(null)
 
-  // Fetch chart data
-  useEffect(() => {
-    if (!chartId) {
-      setIsLoading(false)
-      return
-    }
 
-    fetchChartData(chartId)
+  useEffect(() => {
+    const preloadData = async () => {
+      try {
+        if (!chartId) {
+          setIsLoading(false)
+          return
+        }
+        await fetchChartData(chartId)
+      } catch (error) {
+        console.error("Error during preload:", error)
+      }
+    }
+    preloadData()
   }, [chartId])
 
   // Apply filters when they change
@@ -80,12 +86,15 @@ export function ChartPreview({ chartId, chartType: initialChartType, filters = [
   }, [filters, chartId, originalData, chartQuery])
 
   const fetchChartData = async (chartId: number) => {
+    console.log(`[fetchChartData] called with chartId: ${chartId}`)
+    console.trace("[fetchChartData] Trace of who called me")
+
     setIsLoading(true)
     setError(null)
     setDebugInfo(null)
 
     try {
-      const response = await fetchWithAuth(`${API_BASE_URL}/api/charts/${chartId}`, {
+      const response = await fetchWithAuth(`/api/charts/${chartId}`, {
         method: "GET",
         credentials: "include",
       })
@@ -95,7 +104,7 @@ export function ChartPreview({ chartId, chartType: initialChartType, filters = [
       }
 
       const result = await response.json()
-      console.log("Original chart data:", result)
+      console.log("Original chart data :", result)
 
       // Store chart configuration and dataset ID
       setChartConfig(result.chart.config || {})
