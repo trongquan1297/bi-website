@@ -191,7 +191,7 @@ export default function ChartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen">
       <AppSidebar />
 
       <div className="transition-all duration-300 md:pl-16">
@@ -201,7 +201,7 @@ export default function ChartPage() {
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center mb-4 sm:mb-0">
               <LineChart className="h-6 w-6 text-violet-600 mr-2" />
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Biểu Đồ</h2>
+              <h2 className="text-2xl font-bold ">Chart</h2>
             </div>
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
               <div className="relative w-full sm:w-auto">
@@ -210,24 +210,24 @@ export default function ChartPage() {
                   placeholder="Tìm kiếm biểu đồ..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="pl-8 pr-4 py-2 rounded-full text-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500"
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               </div>
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className="inline-flex items-center justify-center px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                className="inline-flex items-center justify-center px-4 py-2 hover:text-violet-600 dark:hover:text-violet-400 cursor-pointer transition-colors disabled:opacity-50"
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-                {isRefreshing ? "Đang làm mới..." : "Làm mới"}
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin " : ""}`} />
+                {isRefreshing ? "Refreshing..." : "Refresh"}
               </button>
               <button
                 onClick={handleOpenAddModal}
-                className="inline-flex items-center justify-center px-4 py-2 bg-violet-600 text-white rounded-md hover:bg-violet-700 transition-colors"
+                className="inline-flex items-center justify-center px-4 py-2 hover:text-violet-600 dark:hover:text-violet-400 cursor-pointer"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Tạo Biểu Đồ
+                Create
               </button>
             </div>
           </div>
@@ -246,7 +246,7 @@ export default function ChartPage() {
           )}
 
           {/* Chart Type Tabs */}
-          <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden mb-6">
+          <div className="shadow rounded-lg overflow-hidden mb-6">
             <div className="border-b border-gray-200 dark:border-gray-700">
               <nav className="flex -mb-px">
                 <button
@@ -297,7 +297,7 @@ export default function ChartPage() {
           </div>
 
           {filteredCharts.length === 0 && !isLoading && !error ? (
-            <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-8 text-center">
+            <div className="shadow rounded-lg p-8 text-center">
               <LineChart className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Không tìm thấy biểu đồ</h3>
               <p className="text-gray-500 dark:text-gray-400 mb-4">
@@ -308,15 +308,15 @@ export default function ChartPage() {
                 className="inline-flex items-center px-4 py-2 bg-violet-600 text-white rounded-md hover:bg-violet-700 transition-colors"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Tạo biểu đồ mới
+                New chart
               </button>
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+            <div className="shadow rounded-lg overflow-hidden">
               {/* Desktop view - table */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
+                  <thead>
                     <tr>
                       <th
                         scope="col"
@@ -362,10 +362,10 @@ export default function ChartPage() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {filteredCharts.map((chart) => (
-                      <tr key={chart.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                      <tr key={chart.id} className="hover:bg-muted transition-colors border-0">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500 dark:text-gray-300">
                           {chart.id}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
@@ -397,14 +397,14 @@ export default function ChartPage() {
                               onClick={() => handleEditChart(chart.id)}
                               title="Edit chart"
                             >
-                              <Edit className="h-4 w-4" />
+                              <Edit className="h-4 w-4 cursor-pointer" />
                               <span className="sr-only">Edit</span>
                             </button>
                             <button
                               className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
                               title="Download chart"
                             >
-                              <Download className="h-4 w-4" />
+                              <Download className="h-4 w-4 cursor-pointer" />
                               <span className="sr-only">Download</span>
                             </button>
                             <button
@@ -412,7 +412,7 @@ export default function ChartPage() {
                               className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                               title="Delete chart"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4 cursor-pointer" />
                               <span className="sr-only">Delete</span>
                             </button>
                           </div>

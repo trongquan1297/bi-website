@@ -546,7 +546,7 @@ export default function DashboardViewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-white">
       <AppSidebar />
 
       <div className="transition-all duration-300 md:pl-16">
@@ -556,24 +556,26 @@ export default function DashboardViewPage() {
           {/* Dashboard header */}
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h3 className="text-1xl font-bold text-gray-900 dark:text-white mb-1">{dashboard.name}</h3>
+              <h3 className="text-1xl font-bold mb-1">{dashboard.name}</h3>
               {dashboard.description && <p className="text-gray-500 dark:text-gray-400">{dashboard.description}</p>}
             </div>
 
             <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
-              {/* Advanced Filter */}
-              <FilterBuilder
-                onApplyFilters={handleApplyFilters}
-                activeFilters={filters}
-                dashboardCharts={dashboardCharts}
-              />
+              
+              
 
               <TooltipProvider>
                 <div
                   className={`flex items-center gap-2 p-2 rounded-lg ${
-                    isDrawingMode ? "bg-gray-100 dark:bg-gray-800" : ""
+                    isDrawingMode ? "" : ""
                   }`}
                 >
+                  {/* Advanced Filter */}
+                  <FilterBuilder
+                    onApplyFilters={handleApplyFilters}
+                    activeFilters={filters}
+                    dashboardCharts={dashboardCharts}
+                  />
                   {/* Draw Button */}
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -710,7 +712,7 @@ export default function DashboardViewPage() {
           <div id="dashboard-capture" className="relative w-full h-full">
             {/* Dashboard content */}
             <div className="relative touch-none overscroll-none">
-              <div id="dashboard-container" className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 min-h-[70vh]">
+              <div id="dashboard-container" className="rounded-lg shadow-sm p-4 min-h-[70vh]">
                 <div
                   className="grid gap-4"
                   style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gridAutoRows: "80px" }}
@@ -718,8 +720,8 @@ export default function DashboardViewPage() {
                   {dashboard.layout.map((item, index) => {
                     const isChart = item.type === "chart"
                     const itemClassName = isChart
-                      ? "bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden"
-                      : "bg-white dark:bg-gray-800 overflow-hidden"
+                      ? "rounded-lg shadow-sm overflow-hidden"
+                      : "overflow-hidden"
 
                     const safeKey = `${item.i}_${index}` // 👈 thêm index để tránh trùng
 

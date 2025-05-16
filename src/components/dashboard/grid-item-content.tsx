@@ -76,7 +76,7 @@ export function GridItemContent({
       }
     } catch (err) {
       console.error("Error fetching chart type:", err)
-      setError("Failed to load chart type")
+      setError("Failed to load chart or chart is removed")
     } finally {
       setIsLoading(false)
     }

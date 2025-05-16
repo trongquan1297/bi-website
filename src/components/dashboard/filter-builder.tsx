@@ -441,12 +441,12 @@ export function FilterBuilder({ onApplyFilters, activeFilters = [], dashboardCha
             <div className="flex items-center gap-2">
               <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal bg-white">
-                    <Calendar className="mr-2 h-4 w-4" />
+                  <Button variant="outline" className="w-full justify-start text-left font-normal bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500">
+                    <Calendar className="mr-2 h-4 w-4 " />
                     {dateValue ? format(dateValue, "PPP") : <span>Start date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50">
+                <PopoverContent className="w-auto p-0 bg-white  shadow-lg z-50 ">
                   <CalendarComponent mode="single" selected={dateValue} onSelect={handleDateChange} initialFocus />
                 </PopoverContent>
               </Popover>
@@ -456,7 +456,7 @@ export function FilterBuilder({ onApplyFilters, activeFilters = [], dashboardCha
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    className="w-full justify-start text-left font-normal bg-white"
+                    className="w-full justify-start text-left font-normal bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500"
                     disabled={!dateValue}
                   >
                     <Calendar className="mr-2 h-4 w-4" />
@@ -481,12 +481,12 @@ export function FilterBuilder({ onApplyFilters, activeFilters = [], dashboardCha
       return (
         <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="w-full justify-start text-left font-normal bg-white">
+            <Button variant="outline" className="w-full justify-start text-left font-normal bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500">
               <Calendar className="mr-2 h-4 w-4" />
               {dateValue ? format(dateValue, "PPP") : <span>Pick a date</span>}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50">
+          <PopoverContent className="w-auto p-0 bg-white border shadow-lg z-50 ">
             <CalendarComponent mode="single" selected={dateValue} onSelect={handleDateChange} initialFocus />
           </PopoverContent>
         </Popover>
@@ -520,7 +520,7 @@ export function FilterBuilder({ onApplyFilters, activeFilters = [], dashboardCha
         selectedColumnType.includes("numeric"))
     ) {
       return (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ">
           <Input
             type="number"
             placeholder="Min value"
@@ -561,7 +561,7 @@ export function FilterBuilder({ onApplyFilters, activeFilters = [], dashboardCha
         placeholder="Enter value"
         value={filterValue}
         onChange={(e) => setFilterValue(e.target.value)}
-        className="bg-white"
+        className="bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500"
       />
     )
   }
@@ -606,33 +606,33 @@ export function FilterBuilder({ onApplyFilters, activeFilters = [], dashboardCha
           <Button
             variant={filters.length > 0 ? "default" : "outline"}
             className={cn(
-              "flex items-center gap-2 transition-all",
-              filters.length > 0 && "bg-primary/90 hover:bg-primary/80",
+              "flex items-center gap-2 transition-all border-0 cursor-pointer text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400",
+              filters.length > 0 && "bg-primary/90 hover:bg-primary/80 ",
             )}
           >
             <Filter className="h-4 w-4" />
-            Advanced Filter
+             Filter
             {filters.length > 0 && (
-              <Badge variant="outline" className="ml-1 bg-white text-primary border-white">
+              <Badge variant="outline" className="ml-1 bg-white text-primary">
                 {filters.length}
               </Badge>
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[420px] p-0 bg-white border shadow-lg z-50">
-          <div className="p-4 border-b bg-muted/30">
-            <h4 className="font-medium text-lg flex items-center">
+        <PopoverContent className="w-[420px] p-0 bg-white border-y-fuchsia-500 border-x-fuchsia-500  shadow-lg z-50">
+          <div className="p-4 bg-muted/30">
+            <h4 className="font-medium text-lg text-violet-500 flex items-center">
               <Filter className="h-4 w-4 mr-2" />
-              {editingFilterIndex !== null ? "Edit Filter" : "Build Filter"}
+              {editingFilterIndex !== null ? "Edit Filter" : "Filter"}
             </h4>
           </div>
 
           <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
             {/* Dataset selector */}
             <div>
-              <label className="text-sm font-medium mb-1 block text-muted-foreground">Dataset</label>
+              <label className="text-sm font-medium mb-1 block text-violet-500">Dataset</label>
               <Select value={selectedDataset} onValueChange={handleDatasetChange}>
-                <SelectTrigger className="bg-white">
+                <SelectTrigger className="bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500">
                   <SelectValue placeholder="Select dataset" />
                 </SelectTrigger>
                 <SelectContent className="bg-white border shadow-md z-50">
@@ -640,7 +640,7 @@ export function FilterBuilder({ onApplyFilters, activeFilters = [], dashboardCha
                     <SelectItem
                       key={dataset.id}
                       value={dataset.id}
-                      className="hover:bg-primary/10 transition-colors cursor-pointer rounded px-2 py-1.5 my-0.5"
+                      className="hover:bg-primary/10 hover:bg-violet-200 transition-colors cursor-pointer rounded px-2 py-1.5 my-0.5"
                     >
                       <span className="font-medium">{dataset.schema}</span>
                       <span className="text-muted-foreground">.</span>
@@ -653,9 +653,9 @@ export function FilterBuilder({ onApplyFilters, activeFilters = [], dashboardCha
 
             {/* Column selector */}
             <div>
-              <label className="text-sm font-medium mb-1 block text-muted-foreground">Column</label>
+              <label className="text-sm font-medium mb-1 block text-violet-500">Column</label>
               <Select value={selectedColumn} onValueChange={handleColumnChange} disabled={!selectedDataset}>
-                <SelectTrigger className="bg-white">
+                <SelectTrigger className="bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500">
                   <SelectValue placeholder="Select column" />
                 </SelectTrigger>
                 <SelectContent className="bg-white border shadow-md z-50 max-h-[300px]">
@@ -679,9 +679,9 @@ export function FilterBuilder({ onApplyFilters, activeFilters = [], dashboardCha
             <div className="flex gap-3">
               {/* Operator selector */}
               <div className="flex-1">
-                <label className="text-sm font-medium mb-1 block text-muted-foreground">Operator</label>
+                <label className="text-sm font-medium mb-1 block text-violet-500">Operator</label>
                 <Select value={selectedOperator} onValueChange={handleOperatorChange} disabled={!selectedColumn}>
-                  <SelectTrigger className="bg-white">
+                  <SelectTrigger className="bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500">
                     <SelectValue placeholder="Operator" />
                   </SelectTrigger>
                   <SelectContent className="bg-white border shadow-md z-50">
@@ -689,7 +689,7 @@ export function FilterBuilder({ onApplyFilters, activeFilters = [], dashboardCha
                       <SelectItem
                         key={op.value}
                         value={op.value}
-                        className="hover:bg-primary/10 transition-colors cursor-pointer rounded px-2 py-1.5 my-0.5"
+                        className="hover:bg-primary/10 transition-colors hover:bg-violet-200 cursor-pointer rounded px-2 py-1.5 my-0.5"
                       >
                         {op.label}
                       </SelectItem>
@@ -699,8 +699,8 @@ export function FilterBuilder({ onApplyFilters, activeFilters = [], dashboardCha
               </div>
 
               {/* Value input */}
-              <div className="flex-1">
-                <label className="text-sm font-medium mb-1 block text-muted-foreground">Value</label>
+              <div className="flex-1 border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500">
+                <label className="text-sm font-medium mb-1 block text-violet-500">Value</label>
                 {getFilterValueInput()}
               </div>
             </div>
@@ -709,13 +709,13 @@ export function FilterBuilder({ onApplyFilters, activeFilters = [], dashboardCha
             {showChartSelector && (
               <div className="bg-muted/30 p-3 rounded-md">
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-muted-foreground">Apply to Charts</label>
+                  <label className="text-sm font-medium text-green-400">Apply to Charts</label>
                   <div className="flex gap-2">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={selectAllCharts}
-                      className="h-6 text-xs hover:bg-primary/10 transition-colors"
+                      className="h-6 text-xs hover:bg-primary/10 transition-colors text-green-400"
                     >
                       Select All
                     </Button>
@@ -723,13 +723,13 @@ export function FilterBuilder({ onApplyFilters, activeFilters = [], dashboardCha
                       variant="ghost"
                       size="sm"
                       onClick={deselectAllCharts}
-                      className="h-6 text-xs hover:bg-primary/10 transition-colors"
+                      className="h-6 text-xs hover:bg-primary/10 transition-colors text-red-400"
                     >
                       Deselect All
                     </Button>
                   </div>
                 </div>
-                <div className="bg-white p-2 rounded-md max-h-[150px] overflow-y-auto border">
+                <div className="bg-white p-2 rounded-md max-h-[150px] overflow-y-auto ">
                   {dashboardCharts
                     .filter((chart) => chart.dataset_id.toString() === selectedDataset)
                     .map((chart) => (
@@ -792,9 +792,9 @@ export function FilterBuilder({ onApplyFilters, activeFilters = [], dashboardCha
                     !filterValue ||
                     selectedCharts.length === 0
                   }
-                  className="w-full bg-primary hover:bg-primary/90 transition-colors"
+                  className="w-full bg-primary hover:bg-primary/90 transition-colors cursor-pointer hover:text-violet-500"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus className="h-4 w-4 mr-2 " />
                   Add Filter
                 </Button>
               )}
@@ -806,8 +806,8 @@ export function FilterBuilder({ onApplyFilters, activeFilters = [], dashboardCha
                 <Separator className="my-4" />
 
                 <div>
-                  <h4 className="font-medium mb-3 flex items-center">
-                    <Check className="h-4 w-4 mr-2" />
+                  <h4 className="font-medium mb-3 flex items-center text-green-400">
+                    <Check className="h-4 w-4 mr-2 text-green-400" />
                     Active Filters
                     <Badge variant="outline" className="ml-2 bg-primary/10">
                       {filters.length}
@@ -832,7 +832,7 @@ export function FilterBuilder({ onApplyFilters, activeFilters = [], dashboardCha
                               variant="ghost"
                               size="icon"
                               onClick={() => editFilter(index)}
-                              className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-primary/10 rounded-full transition-colors"
+                              className="h-6 w-6 text-muted-foreground hover:text-foreground hover:text-blue-300 rounded-full transition-colors cursor-pointer"
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
@@ -840,7 +840,7 @@ export function FilterBuilder({ onApplyFilters, activeFilters = [], dashboardCha
                               variant="ghost"
                               size="icon"
                               onClick={() => removeFilter(index)}
-                              className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full transition-colors"
+                              className="h-6 w-6 text-muted-foreground hover:text-destructive hover:text-red-300 rounded-full transition-colors cursor-pointer"
                             >
                               <X className="h-3.5 w-3.5" />
                             </Button>
@@ -868,19 +868,19 @@ export function FilterBuilder({ onApplyFilters, activeFilters = [], dashboardCha
           </div>
 
           {/* Footer with action buttons */}
-          <div className="p-3 border-t bg-muted/30 flex justify-between">
+          <div className="p-3  bg-muted/30 flex justify-between">
             <Button
               variant="outline"
               onClick={clearFilters}
               disabled={filters.length === 0}
-              className="hover:bg-destructive/10 hover:text-destructive transition-colors"
+              className="hover:bg-destructive/10 hover:text-destructive transition-colors border-0 text-red-400 cursor-pointer hover:text-red-700"
             >
               Clear All
             </Button>
             <Button
               onClick={applyFilters}
               disabled={filters.length === 0}
-              className="bg-primary hover:bg-primary/90 transition-colors"
+              className="bg-primary hover:bg-primary/90 transition-colors text-green-400 cursor-pointer hover:text-green-700"
             >
               Apply Filters
             </Button>
