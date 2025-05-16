@@ -31,7 +31,7 @@ export function AppHeader() {
   }, [pathname])
 
   return (
-    <header className="fixed top-0 left-0 md:left-16 right-0 z-30 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-all duration-300">
+    <header className="fixed top-0 left-0 md:left-16 right-0 z-30 bg-background shadow-sm border-b border-gray-200 dark:border-gray-700 transition-all duration-300">
       <div className="flex justify-between items-center px-4 sm:px-6 lg:px-8 py-3">
         {/* Mobile menu button */}
         <button
@@ -49,19 +49,9 @@ export function AppHeader() {
           </svg>
         </button>
 
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">{pageTitle}</h1>
+        <h1 className="text-2xl font-semibold text-foreground">{pageTitle}</h1>
 
         <div className="flex items-center space-x-3 sm:space-x-6">
-          {/* Search - hidden on mobile */}
-          <div className="hidden md:flex items-center relative">
-            <input
-              type="text"
-              placeholder="Tìm kiếm..."
-              className="pl-9 pr-4 py-1.5 rounded-full text-sm border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:focus:ring-violet-400 w-48 transition-all duration-300 focus:w-64"
-            />
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          </div>
-
           {/* Notifications */}
           <button className="relative p-1.5 rounded-full text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-500">
             <Bell className="h-5 w-5" />
@@ -80,10 +70,10 @@ export function AppHeader() {
           {/* User Info */}
           <div className="flex items-center space-x-3">
             <div className="hidden sm:block">
-              <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <div className="text-sm font-medium text-foreground">
                 {isLoading ? "Loading..." : userData?.username || "Guest"}
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">
+              <div className="text-xs text-foreground">
                 {isLoading ? "" : userData?.role || "User"}
               </div>
             </div>

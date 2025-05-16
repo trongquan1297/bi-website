@@ -180,3 +180,18 @@
   background-color: rgba(124, 58, 237, 0.1);
   transition: background-color 0.2s ease;
 }
+
+@layer utilities {
+  .bg-muted {
+    background-color: hsl(var(--muted));
+  }
+
+  .hover\:bg-muted:hover {
+    background-color: hsl(var(--muted));
+  }
+
+  .bg-muted-foreground {
+    color: hsl(var(--muted-foreground));
+  }
+}
+

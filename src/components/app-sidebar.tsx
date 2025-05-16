@@ -8,27 +8,34 @@ import {
   MessageSquare,
   Settings,
   LogOut,
-  ChevronLeft,
-  ChevronRight,
   ChevronDown,
   Database,
   BarChart,
   LineChart,
   X,
+  Users,
+  Shield,
+  UserCog,
+  UserCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/lib/auth"
+import { useUser } from "@/app/contexts/user-context"
 
 export function AppSidebar() {
   const router = useRouter()
   const pathname = usePathname()
   const { logout } = useAuth()
+  const { userData } = useUser()
   const [isCollapsed, setIsCollapsed] = useState(true)
   const [isHovering, setIsHovering] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [openSubmenu, setOpenSubmenu] = useState<string | null>("dashboard") // Mặc định mở submenu Dashboard
   const sidebarRef = useRef<HTMLDivElement>(null)
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Check if user has superadmin role
+  const isSuperAdmin = userData?.role?.includes("superadmin") || false
 
   // Xử lý tự động ẩn sidebar khi di chuyển chuột ra khỏi sidebar
   const handleMouseEnter = () => {
@@ -94,12 +101,6 @@ export function AppSidebar() {
         isRouteActive("/home") || isRouteActive("/dashboard") || isRouteActive("/dataset") || isRouteActive("/chart"),
       submenu: [
         {
-          name: "Dataset",
-          icon: <Database className="h-4 w-4" />,
-          href: "/dataset",
-          active: isRouteActive("/dataset"),
-        },
-        {
           name: "Dashboard",
           icon: <BarChart className="h-4 w-4" />,
           href: "/dashboard",
@@ -120,6 +121,42 @@ export function AppSidebar() {
       active: isRouteActive("/chat"),
     },
   ]
+
+  // Add Admin section only for superadmin users
+  if (isSuperAdmin) {
+    navItems.push({
+      name: "Admin",
+      icon: <Shield className="h-5 w-5" />,
+      href: "/admin",
+      active: isRouteActive("/admin"),
+      submenu: [
+        {
+          name: "Users",
+          icon: <UserCircle className="h-4 w-4" />,
+          href: "/admin/users",
+          active: isRouteActive("/admin/users"),
+        },
+        {
+          name: "Roles",
+          icon: <UserCog className="h-4 w-4" />,
+          href: "/admin/roles",
+          active: isRouteActive("/admin/roles"),
+        },
+        {
+          name: "Groups",
+          icon: <Users className="h-4 w-4" />,
+          href: "/admin/groups",
+          active: isRouteActive("/admin/groups"),
+        },
+        {
+          name: "Datasets",
+          icon: <Database className="h-4 w-4" />,
+          href: "/admin/datasets",
+          active: isRouteActive("/admin/datasets"),
+        },
+      ],
+    })
+  }
 
   return (
     <>
@@ -154,21 +191,9 @@ export function AppSidebar() {
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Toggle button - only on desktop */}
-        {/* <button
-          className="absolute -right-3 top-12 hidden md:flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-        >
-          {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
-        </button> */}
-
         {/* Logo */}
         <div className="flex h-16 items-center justify-center">
-          <img
-            src="/AppotaWallet.svg"
-            alt="Appota Logo"
-            className="h-10 w-10 text-violet-600"
-          />
+          <img src="/AppotaWallet.svg" alt="Appota Logo" className="h-10 w-10 text-violet-600" />
           {(!isCollapsed || isHovering || isMobileOpen) && (
             <span className="ml-2 text-xl font-semibold transition-opacity duration-300">BI</span>
           )}
