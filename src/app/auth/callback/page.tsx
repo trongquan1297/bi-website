@@ -1,87 +1,117 @@
-// app/auth/callback/page.tsx
 "use client"
 
 import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useToast } from "@/components/ui/use-toast"
+import { useUser } from "@/app/contexts/user-context"
+import { fetchWithAuth } from "@/lib/api"
 
-export default function SSOCallbackPage() {
+const API_BASE_URL = process.env.NEXT_PUBLIC_BI_API_URL || "http://localhost:8000"
+
+export default function Callback() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { toast } = useToast()
+  const [isProcessing, setIsProcessing] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { setUserData } = useUser()
 
   useEffect(() => {
-    const handleSSOCallback = async () => {
+    // Simplified function to fetch user data
+    const fetchUserData = async () => {
       try {
-        // Lấy authorization code từ URL
-        const code = searchParams.get("authorization_code")
+        console.log("Fetching user data...")
+        const response = await fetchWithAuth(`/api/users/me`)
+
+        if (response.ok) {
+          const userData = await response.json()
+          setUserData(userData)
+          return true
+        }
+
+        return false
+      } catch (error) {
+        console.error("Error fetching user data:", error)
+        return false
+      }
+    }
+    const handleCallback = async () => {
+      try {
+        // Get authorization_code and signature from URL parameters
+        const authorizationCode = searchParams.get("authorization_code")
         const signature = searchParams.get("signature")
 
-        if (!code) {
-          setError("Không nhận được mã xác thực từ nhà cung cấp SSO")
+        if (!authorizationCode) {
+          setError("No authorization code found in the URL")
+          setIsProcessing(false)
           return
         }
 
-        // Gửi authorization code đến backend để xác thực
-        const response = await fetch("/api/auth/sso-callback", {
+        // Call the SSO callback endpoint with the authorization_code and signature
+        const response = await fetch(`${API_BASE_URL}/api/auth/sso`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify({
-            authorization_code: code,
+            authorization_code: authorizationCode,
             signature: signature || undefined,
-          }),
+          })
         })
 
         if (!response.ok) {
           const errorData = await response.json()
-          throw new Error(errorData.message || "Đăng nhập SSO thất bại")
+          throw new Error(errorData.message || "Authentication failed")
         }
 
-        const data = await response.json()
-
-        if (data.access_token) {
-          // Lưu token và chuyển hướng đến trang chủ
-          router.push("/home")
-        } else {
-          throw new Error("Không nhận được token xác thực")
-        }
-      } catch (error) {
-        console.error("SSO callback error:", error)
-        setError(error instanceof Error ? error.message : "Đã xảy ra lỗi khi xác thực SSO")
+        // Fetch user data after successful login
+        await fetchUserData()
+        
+        router.push("/home")
+      } catch (err) {
+        console.error("Authentication error:", err)
+        setError(err instanceof Error ? err.message : "Authentication failed")
+        toast({
+          title: "Authentication failed",
+          description: err instanceof Error ? err.message : "An error occurred during authentication",
+          variant: "destructive",
+        })
+      } finally {
+        setIsProcessing(false)
       }
     }
 
-    handleSSOCallback()
-  }, [router, searchParams])
+    if (searchParams.get("authorization_code")) {
+      handleCallback()
+    } else {
+      setError("No authorization code found in the URL")
+      setIsProcessing(false)
+    }
+  }, [searchParams, router, toast])
+
+  if (isProcessing) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center p-24">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold mb-4">Authenticating...</h1>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
+        </div>
+      </div>
+    )
+  }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-          <div className="text-red-500 mb-4">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-12 w-12 mx-auto mb-2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <h2 className="text-xl font-bold text-center">Đăng nhập thất bại</h2>
-          </div>
-          <p className="text-gray-600 text-center mb-6">{error}</p>
+      <div className="flex min-h-screen flex-col items-center justify-center p-24">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold mb-4">Authentication Error</h1>
+          <p className="text-red-500">{error}</p>
           <button
             onClick={() => router.push("/login")}
-            className="w-full bg-violet-600 text-white py-2 px-4 rounded-md hover:bg-violet-700 transition-colors"
+            className="mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
           >
-            Quay lại trang đăng nhập
+            Return to Login
           </button>
         </div>
       </div>
@@ -89,11 +119,10 @@ export default function SSOCallbackPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
-        <div className="animate-spin h-12 w-12 border-4 border-violet-500 rounded-full border-t-transparent mx-auto mb-4"></div>
-        <h2 className="text-xl font-bold mb-2">Đang xác thực...</h2>
-        <p className="text-gray-600">Vui lòng đợi trong khi chúng tôi hoàn tất quá trình đăng nhập.</p>
+    <div className="flex min-h-screen flex-col items-center justify-center p-24">
+      <div className="text-center">
+        <h1 className="text-2xl font-semibold mb-4">Authentication Successful</h1>
+        <p>Redirecting you to the dashboard...</p>
       </div>
     </div>
   )

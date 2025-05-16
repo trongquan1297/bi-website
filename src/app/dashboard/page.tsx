@@ -37,7 +37,6 @@ interface Dashboard {
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { fetchUserData } = useAuth()
   const { userData, isLoading: isUserLoading } = useUser()
   const [username, setUsername] = useState<string>("Người dùng")
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined)

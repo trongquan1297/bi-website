@@ -13,6 +13,7 @@ export async function POST(request: NextRequest) {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
       body: JSON.stringify(body),
     })
 
@@ -23,29 +24,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Máy chủ trả về định dạng không hợp lệ" }, { status: 500 })
     }
 
-    // Lấy dữ liệu từ response
-    const data = await response.json()
-
-    // Nếu có avatar_url trong response, thêm vào token payload
-    if (data.access_token && data.user_info && data.user_info.avatar_url) {
-        // Giải mã token để thêm thông tin avatar
-        try {
-          const base64Url = data.access_token.split(".")[1]
-          const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
-          const payload = JSON.parse(window.atob(base64))
-  
-          // Thêm avatar_url vào payload
-          payload.avatar_url = data.user_info.avatar_url
-  
-          // Không thể sửa token từ backend, nhưng có thể lưu thông tin này vào response
-          data.user_avatar = data.user_info.avatar_url
-        } catch (error) {
-          console.error("Lỗi khi xử lý token để thêm avatar:", error)
-        }
-      }
-
-    // Trả về response từ API
-    return NextResponse.json(data, { status: response.status })
+    // Trả về response thành công và để cookies được chuyển tiếp
+    return NextResponse.json(
+      { success: true, message: "Authentication successful" },
+      {
+        status: 200
+      },
+    )
   } catch (error) {
     console.error("SSO callback proxy error:", error)
     return NextResponse.json({ message: "Không thể kết nối đến máy chủ xác thực" }, { status: 500 })
